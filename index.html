@@ -5,425 +5,295 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StudyBuddy - Samuel's Study Helper</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
+
     <!-- NAVIGATION BAR -->
     <nav class="navbar">
         <div class="logo">📚 StudyBuddy</div>
         <ul class="nav-links">
-            <li><a href="#home" onclick="showSection('home')">🏠 Home</a></li>
-            <li><a href="#math" onclick="showSection('math')">📐 Math</a></li>
-            <li><a href="#english" onclick="showSection('english')">📖 English</a></li>
-            <li><a href="#hindi" onclick="showSection('hindi')">📝 Hindi</a></li>
-            <li><a href="#science" onclick="showSection('science')">🔬 Science</a></li>
-            <li><a href="#timer" onclick="showSection('timer')">⏱️ Timer</a></li>
+            <li><a href="#" onclick="showSection('home')">🏠 Home</a></li>
+            <li><a href="#" onclick="showSection('library')">📚 Library</a></li>
+            <li><a href="#" onclick="showSection('reader')">📖 Reader</a></li>
+            <li><a href="#" onclick="showSection('quiz')">🧠 Quiz</a></li>
+            <li><a href="#" onclick="showSection('flashcards')">🔤 Flashcards</a></li>
+            <li><a href="#" onclick="showSection('notes')">📝 Notes</a></li>
+            <li><a href="#" onclick="showSection('timer')">⏱️ Timer</a></li>
         </ul>
         <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
     </nav>
 
-    <!-- CURRENT BOOK INDICATOR -->
-    <div class="book-indicator" id="bookIndicator">
-        📖 Current Course: <span id="currentBookDisplay">None Selected</span>
-    </div>
-
-    <!-- ==================== HOME SECTION ==================== -->
+    <!-- ==================== HOME ==================== -->
     <section id="home" class="section active">
         <div class="hero">
             <h1>Welcome, Samuel! 👋</h1>
-            <p>Your personal study companion for Grade VIII CBSE</p>
-            <p class="subtitle">Focus Areas: <span class="highlight">Mathematics</span> & <span class="highlight">Hindi</span></p>
-            <p class="subtitle" style="margin-top:10px;">📚 Click the <strong>floating button</strong> (bottom-right) to select your book!</p>
+            <p>Your personal AI-powered study companion</p>
+            <p class="subtitle">Upload your books → Get quizzes, flashcards & notes automatically!</p>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number" id="totalBooks">0</span>
+                <span class="stat-label">Books Uploaded</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="totalQuizzes">0</span>
+                <span class="stat-label">Quizzes Taken</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="totalScore">0%</span>
+                <span class="stat-label">Avg Score</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number" id="studyStreak">0</span>
+                <span class="stat-label">Day Streak 🔥</span>
+            </div>
         </div>
 
         <div class="card-grid">
-            <div class="card math-card" onclick="showSection('math')">
-                <span class="card-icon">📐</span>
-                <h3>Mathematics</h3>
-                <p>Formulas, Quiz & Practice</p>
-                <span class="card-book" id="mathBookLabel">No book selected</span>
+            <div class="card" onclick="showSection('library')">
+                <span class="card-icon">📚</span>
+                <h3>My Library</h3>
+                <p>View & manage your uploaded books</p>
             </div>
-            <div class="card english-card" onclick="showSection('english')">
-                <span class="card-icon">📖</span>
-                <h3>English</h3>
-                <p>Grammar, Vocabulary & Quiz</p>
-                <span class="card-book" id="englishBookLabel">No book selected</span>
+            <div class="card" onclick="document.getElementById('pdfUploadInput').click()">
+                <span class="card-icon">📤</span>
+                <h3>Upload Book</h3>
+                <p>Add a new PDF book</p>
             </div>
-            <div class="card hindi-card" onclick="showSection('hindi')">
+            <div class="card" onclick="showSection('quiz')">
+                <span class="card-icon">🧠</span>
+                <h3>Take Quiz</h3>
+                <p>Auto-generated from your books</p>
+            </div>
+            <div class="card" onclick="showSection('flashcards')">
+                <span class="card-icon">🔤</span>
+                <h3>Flashcards</h3>
+                <p>Key terms from your books</p>
+            </div>
+            <div class="card" onclick="showSection('notes')">
                 <span class="card-icon">📝</span>
-                <h3>Hindi</h3>
-                <p>Vocabulary & Flashcards</p>
-                <span class="card-book" id="hindiBookLabel">No book selected</span>
+                <h3>My Notes</h3>
+                <p>Write & organize study notes</p>
             </div>
-            <div class="card science-card" onclick="showSection('science')">
-                <span class="card-icon">🔬</span>
-                <h3>Science</h3>
-                <p>Physics, Chemistry, Biology</p>
-                <span class="card-book" id="scienceBookLabel">No book selected</span>
-            </div>
-            <div class="card timer-card" onclick="showSection('timer')">
+            <div class="card" onclick="showSection('timer')">
                 <span class="card-icon">⏱️</span>
                 <h3>Study Timer</h3>
-                <p>Pomodoro Focus Timer</p>
+                <p>Pomodoro focus timer</p>
             </div>
         </div>
 
-        <!-- Daily Motivation -->
+        <!-- Recent Books -->
+        <div class="home-section">
+            <h3>📖 Recently Added Books</h3>
+            <div id="recentBooks" class="recent-books">
+                <p class="empty-message">No books yet. Click the 📤 button to upload your first book!</p>
+            </div>
+        </div>
+
+        <!-- Motivation -->
         <div class="motivation-box">
             <h3>💡 Daily Motivation</h3>
             <p id="dailyQuote"></p>
         </div>
     </section>
 
-    <!-- ==================== MATH SECTION ==================== -->
-    <section id="math" class="section">
-        <h2>📐 Mathematics Zone</h2>
-        <div class="current-chapter-banner" id="mathChapterBanner">
-            📘 Select a book from the 📚 button to load chapters
+    <!-- ==================== LIBRARY ==================== -->
+    <section id="library" class="section">
+        <div class="section-header">
+            <h2>📚 My Book Library</h2>
+            <button class="btn btn-upload" onclick="document.getElementById('pdfUploadInput').click()">
+                📤 Upload New Book
+            </button>
         </div>
 
-        <!-- Dynamic Chapter Content -->
-        <div id="mathDynamicContent"></div>
-
-        <!-- Math Formulas (Always Visible) -->
-        <div class="sub-section">
-            <h3>📌 Key Formulas - Grade VIII</h3>
-            <div class="formula-grid">
-                <div class="formula-card">
-                    <h4>Algebra</h4>
-                    <p>(a + b)² = a² + 2ab + b²</p>
-                    <p>(a - b)² = a² - 2ab + b²</p>
-                    <p>(a + b)(a - b) = a² - b²</p>
-                    <p>(a + b)³ = a³ + 3a²b + 3ab² + b³</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Mensuration</h4>
-                    <p>Area of Trapezium = ½ × (a + b) × h</p>
-                    <p>Area of Rhombus = ½ × d₁ × d₂</p>
-                    <p>Surface Area of Cube = 6a²</p>
-                    <p>Volume of Cube = a³</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Geometry</h4>
-                    <p>Sum of angles in triangle = 180°</p>
-                    <p>Sum of angles in quadrilateral = 360°</p>
-                    <p>Exterior angle = Sum of opposite interior angles</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Percentage & Profit-Loss</h4>
-                    <p>Profit% = (Profit/CP) × 100</p>
-                    <p>Loss% = (Loss/CP) × 100</p>
-                    <p>SI = (P × R × T) / 100</p>
-                    <p>CI = P(1 + R/100)ⁿ - P</p>
-                </div>
-            </div>
+        <!-- Subject Filter -->
+        <div class="filter-bar">
+            <button class="filter-btn active" onclick="filterBooks('all', this)">📚 All</button>
+            <button class="filter-btn" onclick="filterBooks('math', this)">📐 Math</button>
+            <button class="filter-btn" onclick="filterBooks('english', this)">📖 English</button>
+            <button class="filter-btn" onclick="filterBooks('hindi', this)">📝 Hindi</button>
+            <button class="filter-btn" onclick="filterBooks('science', this)">🔬 Science</button>
+            <button class="filter-btn" onclick="filterBooks('social', this)">🌍 Social</button>
+            <button class="filter-btn" onclick="filterBooks('computer', this)">💻 Computer</button>
+            <button class="filter-btn" onclick="filterBooks('other', this)">📦 Other</button>
         </div>
 
-        <!-- Math Quiz -->
-        <div class="sub-section">
-            <h3>🧮 Quick Math Quiz</h3>
-            <div class="quiz-container" id="mathQuizContainer">
-                <div id="mathQuestion" class="question"></div>
-                <div id="mathOptions" class="options"></div>
-                <div id="mathResult" class="result"></div>
-                <button onclick="loadMathQuiz()" class="btn">Next Question ➡️</button>
-                <p class="score-display">Score: <span id="mathScore">0</span> / <span id="mathTotal">0</span></p>
-            </div>
-        </div>
-
-        <!-- Quick Calculator -->
-        <div class="sub-section">
-            <h3>🔢 Quick Calculator</h3>
-            <div class="calculator">
-                <input type="text" id="calcDisplay" class="calc-display" readonly>
-                <div class="calc-buttons">
-                    <button onclick="calcInput('7')">7</button>
-                    <button onclick="calcInput('8')">8</button>
-                    <button onclick="calcInput('9')">9</button>
-                    <button onclick="calcInput('/')" class="operator">÷</button>
-                    <button onclick="calcInput('4')">4</button>
-                    <button onclick="calcInput('5')">5</button>
-                    <button onclick="calcInput('6')">6</button>
-                    <button onclick="calcInput('*')" class="operator">×</button>
-                    <button onclick="calcInput('1')">1</button>
-                    <button onclick="calcInput('2')">2</button>
-                    <button onclick="calcInput('3')">3</button>
-                    <button onclick="calcInput('-')" class="operator">-</button>
-                    <button onclick="calcInput('0')">0</button>
-                    <button onclick="calcInput('.')">.</button>
-                    <button onclick="calcResult()" class="equals">=</button>
-                    <button onclick="calcInput('+')" class="operator">+</button>
-                    <button onclick="calcClear()" class="clear-btn" style="grid-column: span 4;">Clear</button>
-                </div>
+        <!-- Book Grid -->
+        <div id="libraryGrid" class="library-grid">
+            <div class="empty-library" id="emptyLibrary">
+                <span class="empty-icon">📚</span>
+                <h3>Your library is empty</h3>
+                <p>Upload your first PDF book to get started!</p>
+                <button class="btn" onclick="document.getElementById('pdfUploadInput').click()">📤 Upload Book</button>
             </div>
         </div>
     </section>
 
-    <!-- ==================== ENGLISH SECTION ==================== -->
-    <section id="english" class="section">
-        <h2>📖 English Zone</h2>
-        <div class="current-chapter-banner" id="englishChapterBanner">
-            📘 Select a book from the 📚 button to load chapters
-        </div>
-
-        <!-- Dynamic Chapter Content -->
-        <div id="englishDynamicContent"></div>
-
-        <!-- English Grammar -->
-        <div class="sub-section">
-            <h3>📚 Grammar Quick Reference</h3>
-            <div class="formula-grid">
-                <div class="formula-card">
-                    <h4>Parts of Speech</h4>
-                    <p><strong>Noun:</strong> Name of person, place, thing</p>
-                    <p><strong>Pronoun:</strong> Replaces noun (he, she, it)</p>
-                    <p><strong>Verb:</strong> Action word (run, eat, write)</p>
-                    <p><strong>Adjective:</strong> Describes noun (big, red)</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Tenses</h4>
-                    <p><strong>Simple Present:</strong> He writes daily</p>
-                    <p><strong>Present Cont:</strong> He is writing now</p>
-                    <p><strong>Simple Past:</strong> He wrote yesterday</p>
-                    <p><strong>Past Cont:</strong> He was writing</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Active & Passive Voice</h4>
-                    <p><strong>Active:</strong> Ram eats an apple</p>
-                    <p><strong>Passive:</strong> An apple is eaten by Ram</p>
-                    <p><strong>Rule:</strong> Object + is/am/are + V3 + by + Subject</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Direct & Indirect Speech</h4>
-                    <p><strong>Direct:</strong> He said, "I am happy."</p>
-                    <p><strong>Indirect:</strong> He said that he was happy.</p>
-                    <p><strong>Rule:</strong> Change tense, pronoun & remove quotes</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Types of Sentences</h4>
-                    <p><strong>Declarative:</strong> States a fact (.)</p>
-                    <p><strong>Interrogative:</strong> Asks a question (?)</p>
-                    <p><strong>Imperative:</strong> Gives command (.)</p>
-                    <p><strong>Exclamatory:</strong> Shows emotion (!)</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Modals</h4>
-                    <p><strong>Can:</strong> Ability (I can swim)</p>
-                    <p><strong>May:</strong> Permission (May I go?)</p>
-                    <p><strong>Must:</strong> Necessity (You must study)</p>
-                    <p><strong>Should:</strong> Advice (You should rest)</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Articles</h4>
-                    <p><strong>A:</strong> Before consonant sounds</p>
-                    <p><strong>An:</strong> Before vowel sounds</p>
-                    <p><strong>The:</strong> Specific / already known</p>
-                    <p><strong>Tip:</strong> "An hour" (silent h)</p>
-                </div>
-                <div class="formula-card">
-                    <h4>Conjunctions</h4>
-                    <p><strong>And:</strong> Adds information</p>
-                    <p><strong>But:</strong> Shows contrast</p>
-                    <p><strong>Because:</strong> Shows reason</p>
-                    <p><strong>Although:</strong> Despite something</p>
-                </div>
+    <!-- ==================== READER ==================== -->
+    <section id="reader" class="section">
+        <div class="section-header">
+            <h2>📖 Book Reader</h2>
+            <div class="reader-controls">
+                <button class="btn btn-sm" onclick="prevPage()">⬅️ Prev</button>
+                <span class="page-info">Page <span id="currentPage">0</span> of <span id="totalPages">0</span></span>
+                <button class="btn btn-sm" onclick="nextPage()">Next ➡️</button>
             </div>
         </div>
 
-        <!-- English Vocabulary Flashcards -->
-        <div class="sub-section">
-            <h3>🔤 Vocabulary Builder</h3>
-            <div class="flashcard-container">
-                <div class="flashcard" id="engFlashcard" onclick="flipEngCard()">
-                    <div class="flashcard-front eng-front" id="engWord"></div>
-                    <div class="flashcard-back eng-back" id="engMeaning"></div>
-                </div>
-                <p class="hint-text">👆 Click the card to see meaning!</p>
-                <div class="flashcard-nav">
-                    <button onclick="prevEngFlashcard()" class="btn">⬅️ Previous</button>
-                    <span id="engFlashcardCount"></span>
-                    <button onclick="nextEngFlashcard()" class="btn">Next ➡️</button>
-                </div>
+        <div id="readerContent" class="reader-content">
+            <div class="empty-reader">
+                <span class="empty-icon">📖</span>
+                <h3>No book selected</h3>
+                <p>Go to Library and click "Read" on any book</p>
             </div>
         </div>
 
-        <!-- English Quiz -->
-        <div class="sub-section">
-            <h3>📝 English Quiz</h3>
-            <div class="quiz-container" id="engQuizContainer">
-                <div id="engQuestion" class="question"></div>
-                <div id="engOptions" class="options"></div>
-                <div id="engResult" class="result"></div>
-                <button onclick="loadEngQuiz()" class="btn">Next Question ➡️</button>
-                <p class="score-display">Score: <span id="engScore">0</span> / <span id="engTotal">0</span></p>
+        <div id="readerBookTitle" class="reader-book-title"></div>
+    </section>
+
+    <!-- ==================== QUIZ ==================== -->
+    <section id="quiz" class="section">
+        <div class="section-header">
+            <h2>🧠 Quiz Zone</h2>
+            <select id="quizBookSelect" class="select-input" onchange="loadQuizForBook(this.value)">
+                <option value="">-- Select a Book --</option>
+            </select>
+        </div>
+
+        <div id="quizArea" class="quiz-area">
+            <div class="empty-reader">
+                <span class="empty-icon">🧠</span>
+                <h3>Select a book to start quiz</h3>
+                <p>Questions are auto-generated from your uploaded books!</p>
             </div>
         </div>
 
-        <!-- Sentence Correction Practice -->
-        <div class="sub-section">
-            <h3>✏️ Spot the Error</h3>
-            <div class="quiz-container">
-                <div id="errorSentence" class="question"></div>
-                <div id="errorOptions" class="options"></div>
-                <div id="errorResult" class="result"></div>
-                <button onclick="loadErrorQuiz()" class="btn">Next Sentence ➡️</button>
-                <p class="score-display">Score: <span id="errorScore">0</span> / <span id="errorTotal">0</span></p>
+        <!-- Quiz Container -->
+        <div id="quizContainer" class="quiz-container" style="display:none;">
+            <div class="quiz-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="quizProgress"></div>
+                </div>
+                <span id="quizProgressText">Question 1 of 10</span>
+            </div>
+            <div id="quizQuestion" class="question"></div>
+            <div id="quizOptions" class="options"></div>
+            <div id="quizResult" class="result"></div>
+            <div class="quiz-actions">
+                <button onclick="nextQuizQuestion()" class="btn" id="nextQuizBtn" style="display:none;">Next Question ➡️</button>
+            </div>
+            <div class="quiz-score-bar">
+                <span>✅ Correct: <strong id="quizCorrect">0</strong></span>
+                <span>❌ Wrong: <strong id="quizWrong">0</strong></span>
+                <span>📊 Score: <strong id="quizScorePercent">0%</strong></span>
             </div>
         </div>
 
-        <!-- Writing Tips -->
-        <div class="sub-section">
-            <h3>✍️ Writing Tips</h3>
-            <div class="formula-grid">
-                <div class="formula-card">
-                    <h4>📧 Letter Writing</h4>
-                    <p>1. Sender's Address (top-right)</p>
-                    <p>2. Date</p>
-                    <p>3. Receiver's Address (left)</p>
-                    <p>4. Subject</p>
-                    <p>5. Salutation (Dear Sir/Madam)</p>
-                    <p>6. Body (3 paragraphs)</p>
-                    <p>7. Closing (Yours faithfully)</p>
-                </div>
-                <div class="formula-card">
-                    <h4>📝 Essay Writing</h4>
-                    <p>1. <strong>Introduction:</strong> Hook + Thesis</p>
-                    <p>2. <strong>Body 1:</strong> Main point + Example</p>
-                    <p>3. <strong>Body 2:</strong> Supporting point</p>
-                    <p>4. <strong>Body 3:</strong> Another perspective</p>
-                    <p>5. <strong>Conclusion:</strong> Summary + Opinion</p>
-                </div>
-                <div class="formula-card">
-                    <h4>📊 Notice Writing</h4>
-                    <p>1. Name of Organization</p>
-                    <p>2. Title: NOTICE</p>
-                    <p>3. Date</p>
-                    <p>4. Heading</p>
-                    <p>5. Body (What, When, Where, Who)</p>
-                    <p>6. Signature & Designation</p>
-                </div>
+        <!-- Quiz Results -->
+        <div id="quizResults" class="quiz-results" style="display:none;">
+            <h2>🎉 Quiz Complete!</h2>
+            <div class="result-circle" id="resultCircle">
+                <span id="resultPercent">0%</span>
+            </div>
+            <p id="resultMessage"></p>
+            <div class="result-details">
+                <span>✅ Correct: <strong id="finalCorrect">0</strong></span>
+                <span>❌ Wrong: <strong id="finalWrong">0</strong></span>
+                <span>📝 Total: <strong id="finalTotal">0</strong></span>
+            </div>
+            <button class="btn" onclick="loadQuizForBook(document.getElementById('quizBookSelect').value)">🔄 Retake Quiz</button>
+            <button class="btn btn-secondary" onclick="showSection('library')">📚 Back to Library</button>
+        </div>
+    </section>
+
+    <!-- ==================== FLASHCARDS ==================== -->
+    <section id="flashcards" class="section">
+        <div class="section-header">
+            <h2>🔤 Flashcards</h2>
+            <select id="flashcardBookSelect" class="select-input" onchange="loadFlashcardsForBook(this.value)">
+                <option value="">-- Select a Book --</option>
+            </select>
+        </div>
+
+        <div id="flashcardArea">
+            <div class="empty-reader">
+                <span class="empty-icon">🔤</span>
+                <h3>Select a book for flashcards</h3>
+                <p>Key terms extracted from your books!</p>
+            </div>
+        </div>
+
+        <div id="flashcardContainer" class="flashcard-main" style="display:none;">
+            <div class="flashcard-deck" id="flashcardDeck" onclick="flipCurrentCard()">
+                <div class="fc-front" id="fcFront"></div>
+                <div class="fc-back" id="fcBack"></div>
+            </div>
+            <p class="hint-text">👆 Click card to flip!</p>
+            <div class="flashcard-nav">
+                <button onclick="prevFC()" class="btn">⬅️ Previous</button>
+                <span id="fcCount">1 / 10</span>
+                <button onclick="nextFC()" class="btn">Next ➡️</button>
             </div>
         </div>
     </section>
 
-    <!-- ==================== HINDI SECTION ==================== -->
-    <section id="hindi" class="section">
-        <h2>📝 Hindi Zone (हिंदी)</h2>
-        <div class="current-chapter-banner" id="hindiChapterBanner">
-            📘 Select a book from the 📚 button to load chapters
+    <!-- ==================== NOTES ==================== -->
+    <section id="notes" class="section">
+        <div class="section-header">
+            <h2>📝 My Study Notes</h2>
+            <button class="btn" onclick="addNewNote()">➕ New Note</button>
         </div>
 
-        <!-- Dynamic Chapter Content -->
-        <div id="hindiDynamicContent"></div>
-
-        <!-- Hindi Flashcards -->
-        <div class="sub-section">
-            <h3>🔤 Vocabulary Flashcards</h3>
-            <div class="flashcard-container">
-                <div class="flashcard" id="hindiFlashcard" onclick="flipCard()">
-                    <div class="flashcard-front" id="hindiWord"></div>
-                    <div class="flashcard-back" id="hindiMeaning"></div>
-                </div>
-                <p class="hint-text">👆 Click the card to flip!</p>
-                <div class="flashcard-nav">
-                    <button onclick="prevFlashcard()" class="btn">⬅️ Previous</button>
-                    <span id="flashcardCount"></span>
-                    <button onclick="nextFlashcard()" class="btn">Next ➡️</button>
-                </div>
+        <div id="noteEditor" class="note-editor" style="display:none;">
+            <input type="text" id="noteTitle" class="note-title-input" placeholder="Note Title...">
+            <select id="noteSubject" class="select-input">
+                <option value="general">📌 General</option>
+                <option value="math">📐 Math</option>
+                <option value="english">📖 English</option>
+                <option value="hindi">📝 Hindi</option>
+                <option value="science">🔬 Science</option>
+                <option value="social">🌍 Social Science</option>
+                <option value="computer">💻 Computer</option>
+            </select>
+            <textarea id="noteContent" class="note-content-input" placeholder="Write your notes here..."></textarea>
+            <div class="note-actions">
+                <button class="btn" onclick="saveNote()">💾 Save Note</button>
+                <button class="btn btn-secondary" onclick="cancelNote()">❌ Cancel</button>
             </div>
         </div>
 
-        <!-- Hindi Grammar -->
-        <div class="sub-section">
-            <h3>📖 Grammar Quick Reference (व्याकरण)</h3>
-            <div class="formula-grid">
-                <div class="formula-card hindi-grammar">
-                    <h4>संज्ञा (Noun)</h4>
-                    <p><strong>व्यक्तिवाचक:</strong> राम, दिल्ली</p>
-                    <p><strong>जातिवाचक:</strong> लड़का, नदी</p>
-                    <p><strong>भाववाचक:</strong> सुंदरता, बचपन</p>
-                </div>
-                <div class="formula-card hindi-grammar">
-                    <h4>सर्वनाम (Pronoun)</h4>
-                    <p><strong>पुरुषवाचक:</strong> मैं, तू, वह</p>
-                    <p><strong>निश्चयवाचक:</strong> यह, वह</p>
-                    <p><strong>प्रश्नवाचक:</strong> कौन, क्या</p>
-                </div>
-                <div class="formula-card hindi-grammar">
-                    <h4>विशेषण (Adjective)</h4>
-                    <p><strong>गुणवाचक:</strong> अच्छा, सुंदर</p>
-                    <p><strong>संख्यावाचक:</strong> दो, तीन</p>
-                    <p><strong>परिमाणवाचक:</strong> थोड़ा, बहुत</p>
-                </div>
-                <div class="formula-card hindi-grammar">
-                    <h4>काल (Tense)</h4>
-                    <p><strong>भूतकाल:</strong> गया, खाया</p>
-                    <p><strong>वर्तमानकाल:</strong> जाता है, खाता है</p>
-                    <p><strong>भविष्यकाल:</strong> जाएगा, खाएगा</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Hindi Quiz -->
-        <div class="sub-section">
-            <h3>📝 Hindi Quiz (हिंदी प्रश्नोत्तरी)</h3>
-            <div class="quiz-container" id="hindiQuizContainer">
-                <div id="hindiQuestion" class="question"></div>
-                <div id="hindiOptions" class="options"></div>
-                <div id="hindiResult" class="result"></div>
-                <button onclick="loadHindiQuiz()" class="btn">अगला प्रश्न ➡️</button>
-                <p class="score-display">Score: <span id="hindiScore">0</span> / <span id="hindiTotal">0</span></p>
+        <div id="notesList" class="notes-list">
+            <div class="empty-reader">
+                <span class="empty-icon">📝</span>
+                <h3>No notes yet</h3>
+                <p>Click "New Note" to start writing!</p>
             </div>
         </div>
     </section>
 
-    <!-- ==================== SCIENCE SECTION ==================== -->
-    <section id="science" class="section">
-        <h2>🔬 Science Zone</h2>
-        <div class="current-chapter-banner" id="scienceChapterBanner">
-            📘 Select a book from the 📚 button to load chapters
-        </div>
-
-        <div id="scienceDynamicContent"></div>
-
-        <div class="formula-grid">
-            <div class="formula-card">
-                <h4>⚡ Physics</h4>
-                <p>Force = Mass × Acceleration</p>
-                <p>Pressure = Force / Area</p>
-                <p>Speed = Distance / Time</p>
-                <p>Work = Force × Displacement</p>
-            </div>
-            <div class="formula-card">
-                <h4>🧪 Chemistry</h4>
-                <p>Atom: Smallest particle of element</p>
-                <p>Molecule: Group of atoms bonded</p>
-                <p>Valency: Combining capacity</p>
-                <p>pH Scale: 0(Acidic) - 14(Basic)</p>
-            </div>
-            <div class="formula-card">
-                <h4>🧬 Biology</h4>
-                <p>Cell: Basic unit of life</p>
-                <p>Nucleus: Control center</p>
-                <p>Mitochondria: Powerhouse</p>
-                <p>Chloroplast: Photosynthesis</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- ==================== TIMER SECTION ==================== -->
+    <!-- ==================== TIMER ==================== -->
     <section id="timer" class="section">
         <h2>⏱️ Study Timer (Pomodoro)</h2>
         <div class="timer-container">
-            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-ring">
+                <svg width="250" height="250">
+                    <circle cx="125" cy="125" r="110" class="timer-bg-ring"/>
+                    <circle cx="125" cy="125" r="110" class="timer-fg-ring" id="timerRing"/>
+                </svg>
+                <div class="timer-display" id="timerDisplay">25:00</div>
+            </div>
             <div class="timer-buttons">
                 <button onclick="startTimer()" class="btn btn-start">▶️ Start</button>
                 <button onclick="pauseTimer()" class="btn btn-pause">⏸️ Pause</button>
                 <button onclick="resetTimer()" class="btn btn-reset">🔄 Reset</button>
             </div>
             <div class="timer-presets">
-                <button onclick="setTimer(25)" class="btn">📖 Study (25 min)</button>
-                <button onclick="setTimer(5)" class="btn">☕ Short Break (5 min)</button>
-                <button onclick="setTimer(15)" class="btn">🎮 Long Break (15 min)</button>
+                <button onclick="setTimer(25)" class="btn btn-preset">📖 Study (25m)</button>
+                <button onclick="setTimer(5)" class="btn btn-preset">☕ Short Break (5m)</button>
+                <button onclick="setTimer(15)" class="btn btn-preset">🎮 Long Break (15m)</button>
+                <button onclick="setTimer(45)" class="btn btn-preset">📚 Deep Study (45m)</button>
             </div>
             <div class="timer-tip">
                 <h4>💡 Pomodoro Technique</h4>
@@ -435,188 +305,63 @@
         </div>
     </section>
 
-    <!-- ==================== FLOATING BOOK BUTTON ==================== -->
-    <div class="fab-container">
-        <button class="fab-button" id="fabButton" onclick="toggleBookPanel()">
-            📚
-        </button>
-        <span class="fab-tooltip">Select Your Books</span>
-    </div>
-
-    <!-- ==================== BOOK SELECTION PANEL ==================== -->
-    <div class="book-panel" id="bookPanel">
-        <div class="book-panel-header">
-            <h3>📚 Select Your Books & Chapters</h3>
-            <button class="close-panel" onclick="toggleBookPanel()">✖</button>
-        </div>
-        <div class="book-panel-body">
-
-            <!-- MATH BOOKS -->
-            <div class="book-subject-group">
-                <h4 class="book-subject-title" onclick="toggleBookGroup('mathBooks')">
-                    📐 Mathematics <span class="toggle-arrow" id="mathBooksArrow">▼</span>
-                </h4>
-                <div class="book-list" id="mathBooks">
-                    <div class="book-item" onclick="selectBook('math', 'Mathematics - NCERT', this)">
-                        <span class="book-icon">📘</span>
-                        <div>
-                            <strong>Mathematics (NCERT)</strong>
-                            <p>CBSE Grade VIII Textbook</p>
-                        </div>
-                    </div>
-                    <div class="chapter-list" id="mathChapters">
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch1: Rational Numbers')">Ch 1: Rational Numbers</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch2: Linear Equations')">Ch 2: Linear Equations in One Variable</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch3: Understanding Quadrilaterals')">Ch 3: Understanding Quadrilaterals</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch4: Data Handling')">Ch 4: Data Handling</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch5: Squares and Square Roots')">Ch 5: Squares and Square Roots</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch6: Cubes and Cube Roots')">Ch 6: Cubes and Cube Roots</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch7: Comparing Quantities')">Ch 7: Comparing Quantities</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch8: Algebraic Expressions')">Ch 8: Algebraic Expressions</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch9: Mensuration')">Ch 9: Mensuration</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch10: Exponents and Powers')">Ch 10: Exponents and Powers</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch11: Direct and Inverse Proportions')">Ch 11: Direct & Inverse Proportions</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch12: Factorisation')">Ch 12: Factorisation</button>
-                        <button class="chapter-btn" onclick="selectChapter('math', 'Ch13: Introduction to Graphs')">Ch 13: Introduction to Graphs</button>
-                    </div>
-                </div>
+    <!-- ==================== UPLOAD MODAL ==================== -->
+    <div class="modal-overlay" id="uploadModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>📤 Upload Book</h3>
+                <button class="close-modal" onclick="closeUploadModal()">✖</button>
             </div>
-
-            <!-- ENGLISH BOOKS -->
-            <div class="book-subject-group">
-                <h4 class="book-subject-title" onclick="toggleBookGroup('englishBooks')">
-                    📖 English <span class="toggle-arrow" id="englishBooksArrow">▼</span>
-                </h4>
-                <div class="book-list" id="englishBooks">
-                    <div class="book-item" onclick="selectBook('english', 'Honeydew (Prose & Poetry)', this)">
-                        <span class="book-icon">📗</span>
-                        <div>
-                            <strong>Honeydew</strong>
-                            <p>NCERT Prose & Poetry</p>
-                        </div>
-                    </div>
-                    <div class="chapter-list" id="englishChaptersHoneydew">
-                        <button class="chapter-btn" onclick="selectChapter('english', 'The Best Christmas Present')">Ch 1: The Best Christmas Present in the World</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'The Tsunami')">Ch 2: The Tsunami</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'Glimpses of the Past')">Ch 3: Glimpses of the Past</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'Bepin Choudhurys Lapse of Memory')">Ch 4: Bepin Choudhury's Lapse of Memory</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'The Summit Within')">Ch 5: The Summit Within</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'This is Jodys Fawn')">Ch 6: This is Jody's Fawn</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'A Visit to Cambridge')">Ch 7: A Visit to Cambridge</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'A Short Monsoon Diary')">Ch 8: A Short Monsoon Diary</button>
-                    </div>
-                    <div class="book-item" onclick="selectBook('english', 'It So Happened (Supplementary)', this)">
-                        <span class="book-icon">📕</span>
-                        <div>
-                            <strong>It So Happened</strong>
-                            <p>NCERT Supplementary Reader</p>
-                        </div>
-                    </div>
-                    <div class="chapter-list" id="englishChaptersSupplement">
-                        <button class="chapter-btn" onclick="selectChapter('english', 'How the Camel Got His Hump')">Ch 1: How the Camel Got His Hump</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'Children at Work')">Ch 2: Children at Work</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'The Selfish Giant')">Ch 3: The Selfish Giant</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'The Treasure Within')">Ch 4: The Treasure Within</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'Princess September')">Ch 5: Princess September</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'The Fight')">Ch 6: The Fight</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'Jalebis')">Ch 7: Jalebis</button>
-                        <button class="chapter-btn" onclick="selectChapter('english', 'Ancient Education System')">Ch 8: Ancient Education System of India</button>
-                    </div>
+            <div class="modal-body">
+                <div class="upload-zone" id="uploadZone">
+                    <span class="upload-icon">📄</span>
+                    <h3>Drag & Drop PDF here</h3>
+                    <p>or click to browse</p>
+                    <input type="file" id="pdfUploadInput" accept=".pdf" onchange="handleFileUpload(event)" hidden>
+                    <button class="btn" onclick="document.getElementById('pdfUploadInput').click()">Browse Files</button>
                 </div>
-            </div>
 
-            <!-- HINDI BOOKS -->
-            <div class="book-subject-group">
-                <h4 class="book-subject-title" onclick="toggleBookGroup('hindiBooks')">
-                    📝 Hindi <span class="toggle-arrow" id="hindiBooksArrow">▼</span>
-                </h4>
-                <div class="book-list" id="hindiBooks">
-                    <div class="book-item" onclick="selectBook('hindi', 'Vasant (वसंत भाग 3)', this)">
-                        <span class="book-icon">📙</span>
+                <div id="uploadForm" class="upload-form" style="display:none;">
+                    <div class="file-preview">
+                        <span>📄</span>
                         <div>
-                            <strong>वसंत भाग 3 (Vasant)</strong>
-                            <p>NCERT Hindi Textbook</p>
+                            <strong id="uploadFileName"></strong>
+                            <p id="uploadFileSize"></p>
                         </div>
                     </div>
-                    <div class="chapter-list" id="hindiChaptersVasant">
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'ध्वनि')">Ch 1: ध्वनि</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'लाख की चूड़ियाँ')">Ch 2: लाख की चूड़ियाँ</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'बस की यात्रा')">Ch 3: बस की यात्रा</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'दीवानों की हस्ती')">Ch 4: दीवानों की हस्ती</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'चिट्ठियों की अनूठी दुनिया')">Ch 5: चिट्ठियों की अनूठी दुनिया</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'भगवान के डाकिए')">Ch 6: भगवान के डाकिए</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'क्या निराश हुआ जाए')">Ch 7: क्या निराश हुआ जाए</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'यह सबसे कठिन समय नहीं')">Ch 8: यह सबसे कठिन समय नहीं</button>
-                        <button class="chapter-btn" onclick="selectChapter('hindi', 'कबीर की साखियाँ')">Ch 9: कबीर की साखियाँ</button>
-                    </div>
-                    <div class="book-item" onclick="selectBook('hindi', 'Bharat Ki Khoj (भारत की खोज)', this)">
-                        <span class="book-icon">📔</span>
-                        <div>
-                            <strong>भारत की खोज</strong>
-                            <p>NCERT Supplementary</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                    <input type="text" id="bookTitle" class="form-input" placeholder="Book Title *">
+                    <select id="bookSubject" class="form-input">
+                        <option value="">Select Subject *</option>
+                        <option value="math">📐 Mathematics</option>
+                        <option value="english">📖 English</option>
+                        <option value="hindi">📝 Hindi</option>
+                        <option value="science">🔬 Science</option>
+                        <option value="social">🌍 Social Science</option>
+                        <option value="computer">💻 Computer Science</option>
+                        <option value="other">📦 Other</option>
+                    </select>
+                    <input type="text" id="bookAuthor" class="form-input" placeholder="Author (optional)">
 
-            <!-- SCIENCE BOOKS -->
-            <div class="book-subject-group">
-                <h4 class="book-subject-title" onclick="toggleBookGroup('scienceBooks')">
-                    🔬 Science <span class="toggle-arrow" id="scienceBooksArrow">▼</span>
-                </h4>
-                <div class="book-list" id="scienceBooks">
-                    <div class="book-item" onclick="selectBook('science', 'Science - NCERT', this)">
-                        <span class="book-icon">📘</span>
-                        <div>
-                            <strong>Science (NCERT)</strong>
-                            <p>CBSE Grade VIII Textbook</p>
+                    <div class="upload-progress" id="uploadProgress" style="display:none;">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="uploadProgressBar"></div>
                         </div>
+                        <p id="uploadStatus">Extracting text from PDF...</p>
                     </div>
-                    <div class="chapter-list" id="scienceChapters">
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch1: Crop Production')">Ch 1: Crop Production & Management</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch2: Microorganisms')">Ch 2: Microorganisms: Friend & Foe</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch3: Coal and Petroleum')">Ch 3: Coal and Petroleum</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch4: Combustion and Flame')">Ch 4: Combustion and Flame</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch5: Conservation of Plants')">Ch 5: Conservation of Plants & Animals</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch6: Reproduction in Animals')">Ch 6: Reproduction in Animals</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch7: Reaching the Age of Adolescence')">Ch 7: Reaching the Age of Adolescence</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch8: Force and Pressure')">Ch 8: Force and Pressure</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch9: Friction')">Ch 9: Friction</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch10: Sound')">Ch 10: Sound</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch11: Chemical Effects of Current')">Ch 11: Chemical Effects of Electric Current</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch12: Some Natural Phenomena')">Ch 12: Some Natural Phenomena</button>
-                        <button class="chapter-btn" onclick="selectChapter('science', 'Ch13: Light')">Ch 13: Light</button>
-                    </div>
-                </div>
-            </div>
 
-            <!-- ADD CUSTOM BOOK -->
-            <div class="book-subject-group">
-                <h4 class="book-subject-title" onclick="toggleBookGroup('customBooks')">
-                    ➕ Add Custom Book <span class="toggle-arrow" id="customBooksArrow">▼</span>
-                </h4>
-                <div class="book-list" id="customBooks">
-                    <div class="custom-book-form">
-                        <select id="customSubject" class="form-input">
-                            <option value="">Select Subject</option>
-                            <option value="math">Mathematics</option>
-                            <option value="english">English</option>
-                            <option value="hindi">Hindi</option>
-                            <option value="science">Science</option>
-                        </select>
-                        <input type="text" id="customBookName" class="form-input" placeholder="Book Name">
-                        <input type="text" id="customChapterName" class="form-input" placeholder="Chapter Name">
-                        <textarea id="customNotes" class="form-input form-textarea" placeholder="Add your notes here..."></textarea>
-                        <button onclick="addCustomBook()" class="btn btn-add">➕ Add Book / Notes</button>
+                    <div class="modal-actions">
+                        <button class="btn" onclick="processUpload()" id="uploadBtn">📤 Upload & Process</button>
+                        <button class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
                     </div>
-                    <div id="customBooksList"></div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- OVERLAY -->
-    <div class="overlay" id="overlay" onclick="toggleBookPanel()"></div>
+    <!-- ==================== FAB BUTTON ==================== -->
+    <button class="fab" onclick="openUploadModal()">
+        <span class="fab-icon">📤</span>
+    </button>
 
     <!-- FOOTER -->
     <footer>
