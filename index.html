@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyBuddy - Samuel's Study Helper</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- NAVIGATION BAR -->
+    <nav class="navbar">
+        <div class="logo">📚 StudyBuddy</div>
+        <ul class="nav-links">
+            <li><a href="#home" onclick="showSection('home')">🏠 Home</a></li>
+            <li><a href="#math" onclick="showSection('math')">📐 Math</a></li>
+            <li><a href="#hindi" onclick="showSection('hindi')">📝 Hindi</a></li>
+            <li><a href="#science" onclick="showSection('science')">🔬 Science</a></li>
+            <li><a href="#timer" onclick="showSection('timer')">⏱️ Timer</a></li>
+        </ul>
+        <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+    </nav>
+
+    <!-- ==================== HOME SECTION ==================== -->
+    <section id="home" class="section active">
+        <div class="hero">
+            <h1>Welcome, Samuel! 👋</h1>
+            <p>Your personal study companion for Grade VIII CBSE</p>
+            <p class="subtitle">Focus Areas: <span class="highlight">Mathematics</span> & <span class="highlight">Hindi</span></p>
+        </div>
+
+        <div class="card-grid">
+            <div class="card math-card" onclick="showSection('math')">
+                <span class="card-icon">📐</span>
+                <h3>Mathematics</h3>
+                <p>Formulas, Quiz & Practice</p>
+            </div>
+            <div class="card hindi-card" onclick="showSection('hindi')">
+                <span class="card-icon">📝</span>
+                <h3>Hindi</h3>
+                <p>Vocabulary & Flashcards</p>
+            </div>
+            <div class="card science-card" onclick="showSection('science')">
+                <span class="card-icon">🔬</span>
+                <h3>Science</h3>
+                <p>Physics, Chemistry, Biology</p>
+            </div>
+            <div class="card timer-card" onclick="showSection('timer')">
+                <span class="card-icon">⏱️</span>
+                <h3>Study Timer</h3>
+                <p>Pomodoro Focus Timer</p>
+            </div>
+        </div>
+
+        <!-- Daily Motivation -->
+        <div class="motivation-box">
+            <h3>💡 Daily Motivation</h3>
+            <p id="dailyQuote"></p>
+        </div>
+    </section>
+
+    <!-- ==================== MATH SECTION ==================== -->
+    <section id="math" class="section">
+        <h2>📐 Mathematics Zone</h2>
+
+        <!-- Math Formulas -->
+        <div class="sub-section">
+            <h3>📌 Key Formulas - Grade VIII</h3>
+            <div class="formula-grid">
+                <div class="formula-card">
+                    <h4>Algebra</h4>
+                    <p>(a + b)² = a² + 2ab + b²</p>
+                    <p>(a - b)² = a² - 2ab + b²</p>
+                    <p>(a + b)(a - b) = a² - b²</p>
+                    <p>(a + b)³ = a³ + 3a²b + 3ab² + b³</p>
+                </div>
+                <div class="formula-card">
+                    <h4>Mensuration</h4>
+                    <p>Area of Trapezium = ½ × (a + b) × h</p>
+                    <p>Area of Rhombus = ½ × d₁ × d₂</p>
+                    <p>Surface Area of Cube = 6a²</p>
+                    <p>Volume of Cube = a³</p>
+                </div>
+                <div class="formula-card">
+                    <h4>Geometry</h4>
+                    <p>Sum of angles in triangle = 180°</p>
+                    <p>Sum of angles in quadrilateral = 360°</p>
+                    <p>Exterior angle = Sum of opposite interior angles</p>
+                </div>
+                <div class="formula-card">
+                    <h4>Percentage & Profit-Loss</h4>
+                    <p>Profit% = (Profit/CP) × 100</p>
+                    <p>Loss% = (Loss/CP) × 100</p>
+                    <p>SI = (P × R × T) / 100</p>
+                    <p>CI = P(1 + R/100)ⁿ - P</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Math Quiz -->
+        <div class="sub-section">
+            <h3>🧮 Quick Math Quiz</h3>
+            <div class="quiz-container" id="mathQuizContainer">
+                <div id="mathQuestion" class="question"></div>
+                <div id="mathOptions" class="options"></div>
+                <div id="mathResult" class="result"></div>
+                <button onclick="loadMathQuiz()" class="btn">Next Question ➡️</button>
+                <p class="score-display">Score: <span id="mathScore">0</span> / <span id="mathTotal">0</span></p>
+            </div>
+        </div>
+
+        <!-- Quick Calculator -->
+        <div class="sub-section">
+            <h3>🔢 Quick Calculator</h3>
+            <div class="calculator">
+                <input type="text" id="calcDisplay" class="calc-display" readonly>
+                <div class="calc-buttons">
+                    <button onclick="calcInput('7')">7</button>
+                    <button onclick="calcInput('8')">8</button>
+                    <button onclick="calcInput('9')">9</button>
+                    <button onclick="calcInput('/')" class="operator">÷</button>
+                    <button onclick="calcInput('4')">4</button>
+                    <button onclick="calcInput('5')">5</button>
+                    <button onclick="calcInput('6')">6</button>
+                    <button onclick="calcInput('*')" class="operator">×</button>
+                    <button onclick="calcInput('1')">1</button>
+                    <button onclick="calcInput('2')">2</button>
+                    <button onclick="calcInput('3')">3</button>
+                    <button onclick="calcInput('-')" class="operator">-</button>
+                    <button onclick="calcInput('0')">0</button>
+                    <button onclick="calcInput('.')">.</button>
+                    <button onclick="calcResult()" class="equals">=</button>
+                    <button onclick="calcInput('+')" class="operator">+</button>
+                    <button onclick="calcClear()" class="clear-btn" style="grid-column: span 4;">Clear</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== HINDI SECTION ==================== -->
+    <section id="hindi" class="section">
+        <h2>📝 Hindi Zone (हिंदी)</h2>
+
+        <!-- Hindi Flashcards -->
+        <div class="sub-section">
+            <h3>🔤 Vocabulary Flashcards</h3>
+            <div class="flashcard-container">
+                <div class="flashcard" id="hindiFlashcard" onclick="flipCard()">
+                    <div class="flashcard-front" id="hindiWord"></div>
+                    <div class="flashcard-back" id="hindiMeaning"></div>
+                </div>
+                <p class="hint-text">👆 Click the card to flip!</p>
+                <div class="flashcard-nav">
+                    <button onclick="prevFlashcard()" class="btn">⬅️ Previous</button>
+                    <span id="flashcardCount"></span>
+                    <button onclick="nextFlashcard()" class="btn">Next ➡️</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hindi Grammar -->
+        <div class="sub-section">
+            <h3>📖 Grammar Quick Reference (व्याकरण)</h3>
+            <div class="formula-grid">
+                <div class="formula-card hindi-grammar">
+                    <h4>संज्ञा (Noun)</h4>
+                    <p><strong>व्यक्तिवाचक:</strong> राम, दिल्ली</p>
+                    <p><strong>जातिवाचक:</strong> लड़का, नदी</p>
+                    <p><strong>भाववाचक:</strong> सुंदरता, बचपन</p>
+                </div>
+                <div class="formula-card hindi-grammar">
+                    <h4>सर्वनाम (Pronoun)</h4>
+                    <p><strong>पुरुषवाचक:</strong> मैं, तू, वह</p>
+                    <p><strong>निश्चयवाचक:</strong> यह, वह</p>
+                    <p><strong>प्रश्नवाचक:</strong> कौन, क्या</p>
+                </div>
+                <div class="formula-card hindi-grammar">
+                    <h4>विशेषण (Adjective)</h4>
+                    <p><strong>गुणवाचक:</strong> अच्छा, सुंदर</p>
+                    <p><strong>संख्यावाचक:</strong> दो, तीन</p>
+                    <p><strong>परिमाणवाचक:</strong> थोड़ा, बहुत</p>
+                </div>
+                <div class="formula-card hindi-grammar">
+                    <h4>काल (Tense)</h4>
+                    <p><strong>भूतकाल:</strong> गया, खाया</p>
+                    <p><strong>वर्तमानकाल:</strong> जाता है, खाता है</p>
+                    <p><strong>भविष्यकाल:</strong> जाएगा, खाएगा</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hindi Quiz -->
+        <div class="sub-section">
+            <h3>📝 Hindi Quiz (हिंदी प्रश्नोत्तरी)</h3>
+            <div class="quiz-container" id="hindiQuizContainer">
+                <div id="hindiQuestion" class="question"></div>
+                <div id="hindiOptions" class="options"></div>
+                <div id="hindiResult" class="result"></div>
+                <button onclick="loadHindiQuiz()" class="btn">अगला प्रश्न ➡️</button>
+                <p class="score-display">Score: <span id="hindiScore">0</span> / <span id="hindiTotal">0</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== SCIENCE SECTION ==================== -->
+    <section id="science" class="section">
+        <h2>🔬 Science Zone</h2>
+        <div class="formula-grid">
+            <div class="formula-card">
+                <h4>⚡ Physics</h4>
+                <p>Force = Mass × Acceleration</p>
+                <p>Pressure = Force / Area</p>
+                <p>Speed = Distance / Time</p>
+                <p>Work = Force × Displacement</p>
+            </div>
+            <div class="formula-card">
+                <h4>🧪 Chemistry</h4>
+                <p>Atom: Smallest particle of element</p>
+                <p>Molecule: Group of atoms bonded</p>
+                <p>Valency: Combining capacity</p>
+                <p>pH Scale: 0(Acidic) - 14(Basic)</p>
+            </div>
+            <div class="formula-card">
+                <h4>🧬 Biology</h4>
+                <p>Cell: Basic unit of life</p>
+                <p>Nucleus: Control center</p>
+                <p>Mitochondria: Powerhouse</p>
+                <p>Chloroplast: Photosynthesis</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== TIMER SECTION ==================== -->
+    <section id="timer" class="section">
+        <h2>⏱️ Study Timer (Pomodoro)</h2>
+        <div class="timer-container">
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="timer-buttons">
+                <button onclick="startTimer()" class="btn btn-start">▶️ Start</button>
+                <button onclick="pauseTimer()" class="btn btn-pause">⏸️ Pause</button>
+                <button onclick="resetTimer()" class="btn btn-reset">🔄 Reset</button>
+            </div>
+            <div class="timer-presets">
+                <button onclick="setTimer(25)" class="btn">📖 Study (25 min)</button>
+                <button onclick="setTimer(5)" class="btn">☕ Short Break (5 min)</button>
+                <button onclick="setTimer(15)" class="btn">🎮 Long Break (15 min)</button>
+            </div>
+            <div class="timer-tip">
+                <h4>💡 Pomodoro Technique</h4>
+                <p>1. Study for 25 minutes 📖</p>
+                <p>2. Take 5 min break ☕</p>
+                <p>3. Repeat 4 times 🔄</p>
+                <p>4. Take 15 min long break 🎮</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <p>Made with ❤️ by Samuel Giftson S | Grade VIII | St Christopher Academy</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
