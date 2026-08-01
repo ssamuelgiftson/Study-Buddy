@@ -1,42 +1,132 @@
 // ============================================
-//   STUDYBUDDY v2 - PDF BOOK BASED LEARNING
+//   STUDYBUDDY v3 — PDF UPLOAD FIXED
 //   By Samuel Giftson S
 // ============================================
 
-// Set PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// ===== PDF.js Setup =====
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ===== GLOBAL STATE =====
-let books = JSON.parse(localStorage.getItem('studyBuddyBooks')) || [];
-let notes = JSON.parse(localStorage.getItem('studyBuddyNotes')) || [];
-let stats = JSON.parse(localStorage.getItem('studyBuddyStats')) || {
-    quizzesTaken: 0, totalCorrect: 0, totalAnswered: 0, lastStudyDate: null, streak: 0
+// ========== TOAST SYSTEM ==========
+function toast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+    t.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+// ========== LOADING OVERLAY ==========
+function showLoading(text) {
+    document.getElementById('loadingText').textContent = text;
+    document.getElementById('loadingOverlay').classList.add('show');
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+// ========== INDEXEDDB STORAGE ==========
+const DB_NAME = 'StudyBuddyDB';
+const DB_VERSION = 1;
+let db = null;
+
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = (e) => {
+            const database = e.target.result;
+            if (!database.objectStoreNames.contains('books')) {
+                database.createObjectStore('books', { keyPath: 'id' });
+            }
+            if (!database.objectStoreNames.contains('notes')) {
+                database.createObjectStore('notes', { keyPath: 'id' });
+            }
+        };
+
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            resolve(db);
+        };
+
+        request.onerror = (e) => {
+            console.error('DB Error:', e);
+            reject(e);
+        };
+    });
+}
+
+function dbSave(store, data) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(data);
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+    });
+}
+
+function dbGetAll(store) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e);
+    });
+}
+
+function dbDelete(store, id) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e);
+    });
+}
+
+function dbGet(store, id) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).get(id);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = (e) => reject(e);
+    });
+}
+
+// ========== GLOBAL STATE ==========
+let books = [];
+let notesArr = [];
+let stats = JSON.parse(localStorage.getItem('sbStats')) || {
+    quizzesTaken: 0, totalCorrect: 0, totalAnswered: 0,
+    lastDate: null, streak: 0
 };
-let currentUploadFile = null;
-let currentUploadText = '';
-let currentReaderBook = null;
-let currentReaderPage = 0;
-let quizQuestions = [];
-let currentQuizIndex = 0;
-let quizCorrect = 0;
-let quizWrong = 0;
-let flashcards = [];
-let currentFCIndex = 0;
-let editingNoteId = null;
 
-// ===== SECTION NAVIGATION =====
+let chosenFile = null;
+let readerBook = null;
+let readerPage = 0;
+let quizQs = [];
+let quizIdx = 0;
+let qCorrect = 0;
+let qWrong = 0;
+let fcards = [];
+let fcIdx = 0;
+let editNoteId = null;
+
+// ========== NAVIGATION ==========
 function showSection(id) {
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
     window.scrollTo(0, 0);
 
     if (id === 'library') renderLibrary();
-    if (id === 'quiz') populateBookSelect('quizBookSelect');
-    if (id === 'flashcards') populateBookSelect('flashcardBookSelect');
+    if (id === 'quiz') fillBookSelect('quizBookSelect');
+    if (id === 'flashcards') fillBookSelect('flashcardBookSelect');
     if (id === 'notes') renderNotes();
 }
 
-// ===== THEME =====
+// ========== THEME ==========
 function toggleTheme() {
     document.body.classList.toggle('dark-theme');
     const btn = document.querySelector('.theme-toggle');
@@ -44,46 +134,24 @@ function toggleTheme() {
     localStorage.setItem('sbTheme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
 }
 
-// ===== DAILY QUOTE =====
+// ========== QUOTE ==========
 const quotes = [
-    "\"The only way to do great work is to love what you do.\" — Steve Jobs",
-    "\"Education is the most powerful weapon to change the world.\" — Nelson Mandela",
-    "\"Practice makes a man perfect!\" — Keep Going, Samuel! 💪",
-    "\"The expert in anything was once a beginner.\" — Helen Hayes",
-    "\"Success is the sum of small efforts repeated day in and day out.\"",
-    "\"Believe you can and you're halfway there.\" — Theodore Roosevelt",
-    "\"Reading is to the mind what exercise is to the body.\" — Joseph Addison",
-    "\"The beautiful thing about learning is that nobody can take it away from you.\"",
-    "\"A room without books is like a body without a soul.\" — Cicero",
-    "\"हिंदी हमारी मातृभाषा है, इसे गर्व से सीखें!\" 🇮🇳"
+    '"Education is the most powerful weapon." — Nelson Mandela',
+    '"Practice makes a man perfect!" — Keep Going, Samuel! 💪',
+    '"The expert in anything was once a beginner." — Helen Hayes',
+    '"Believe you can and you\'re halfway there." — Roosevelt',
+    '"Reading is to the mind what exercise is to the body."',
+    '"Success is the sum of small efforts repeated daily."',
+    '"The only way to do great work is to love what you do." — Steve Jobs',
+    '"A room without books is like a body without a soul." — Cicero'
 ];
 
-function showDailyQuote() {
+function showQuote() {
     const el = document.getElementById('dailyQuote');
     if (el) el.textContent = quotes[new Date().getDate() % quotes.length];
 }
 
-// ===== STREAK TRACKER =====
-function updateStreak() {
-    const today = new Date().toDateString();
-    if (stats.lastStudyDate !== today) {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        if (stats.lastStudyDate === yesterday.toDateString()) {
-            stats.streak++;
-        } else if (stats.lastStudyDate !== today) {
-            stats.streak = 1;
-        }
-        stats.lastStudyDate = today;
-        saveStats();
-    }
-}
-
-function saveStats() {
-    localStorage.setItem('studyBuddyStats', JSON.stringify(stats));
-    updateDashboard();
-}
-
+// ========== DASHBOARD ==========
 function updateDashboard() {
     const tb = document.getElementById('totalBooks');
     const tq = document.getElementById('totalQuizzes');
@@ -100,168 +168,245 @@ function updateDashboard() {
 }
 
 function renderRecentBooks() {
-    const container = document.getElementById('recentBooks');
-    if (!container) return;
+    const c = document.getElementById('recentBooks');
+    if (!c) return;
 
     if (books.length === 0) {
-        container.innerHTML = '<p class="empty-message">No books yet. Click the 📤 button to upload your first book!</p>';
+        c.innerHTML = '<p class="empty-message">No books yet. Click 📤 Upload Book to get started!</p>';
         return;
     }
 
-    const recent = books.slice(-4).reverse();
-    container.innerHTML = recent.map(book => `
-        <div class="recent-book-card" onclick="openReader('${book.id}')">
-            <h4>${getSubjectEmoji(book.subject)} ${book.title}</h4>
-            <p>${book.subject.toUpperCase()} • ${book.pages} pages</p>
-            <p>${book.date}</p>
+    c.innerHTML = books.slice(-5).reverse().map(b => `
+        <div class="recent-book-card" onclick="openReader('${b.id}')">
+            <h4>${getEmoji(b.subject)} ${b.title}</h4>
+            <p>${b.subject.toUpperCase()} · ${b.pages} pages</p>
+            <p>${b.date}</p>
         </div>
     `).join('');
 }
 
-function getSubjectEmoji(subject) {
-    const emojis = { math: '📐', english: '📖', hindi: '📝', science: '🔬', social: '🌍', computer: '💻', other: '📦' };
-    return emojis[subject] || '📄';
+function getEmoji(s) {
+    return { math:'📐', english:'📖', hindi:'📝', science:'🔬', social:'🌍', computer:'💻', other:'📦' }[s] || '📄';
+}
+
+function getColor(s) {
+    return { math:'#4f46e5,#7c3aed', english:'#059669,#10b981', hindi:'#db2777,#ec4899',
+        science:'#0891b2,#06b6d4', social:'#d97706,#f59e0b', computer:'#7c3aed,#8b5cf6',
+        other:'#64748b,#94a3b8' }[s] || '#64748b,#94a3b8';
+}
+
+function updateStreak() {
+    const today = new Date().toDateString();
+    if (stats.lastDate !== today) {
+        const y = new Date(); y.setDate(y.getDate() - 1);
+        stats.streak = (stats.lastDate === y.toDateString()) ? stats.streak + 1 : 1;
+        stats.lastDate = today;
+        localStorage.setItem('sbStats', JSON.stringify(stats));
+    }
 }
 
 // ============================================
-//   PDF UPLOAD & PROCESSING
+//   PDF UPLOAD — THE FIX
 // ============================================
 
 function openUploadModal() {
     document.getElementById('uploadModal').classList.add('show');
-    resetUploadForm();
+    // Reset to step 1
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('uploadProgress').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    chosenFile = null;
 }
 
 function closeUploadModal() {
     document.getElementById('uploadModal').classList.remove('show');
-    resetUploadForm();
+    chosenFile = null;
 }
 
-function resetUploadForm() {
-    document.getElementById('uploadForm').style.display = 'none';
-    document.getElementById('uploadZone').style.display = 'block';
-    document.getElementById('uploadProgress').style.display = 'none';
-    document.getElementById('bookTitle').value = '';
-    document.getElementById('bookSubject').value = '';
-    document.getElementById('bookAuthor').value = '';
-    currentUploadFile = null;
-    currentUploadText = '';
+function changeFile() {
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    chosenFile = null;
 }
 
-// Handle file selection
-function handleFileUpload(event) {
+function onFileChosen(event) {
     const file = event.target.files[0];
-    if (!file || file.type !== 'application/pdf') {
-        alert('⚠️ Please select a valid PDF file!');
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+        toast('Please select a PDF file!', 'error');
         return;
     }
 
-    currentUploadFile = file;
+    if (file.size > 50 * 1024 * 1024) {
+        toast('File too large! Max 50MB.', 'error');
+        return;
+    }
 
-    // Show form
-    document.getElementById('uploadZone').style.display = 'none';
-    document.getElementById('uploadForm').style.display = 'block';
-    document.getElementById('uploadFileName').textContent = file.name;
-    document.getElementById('uploadFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+    chosenFile = file;
 
-    // Auto-fill title from filename
-    const title = file.name.replace('.pdf', '').replace(/[_-]/g, ' ');
-    document.getElementById('bookTitle').value = title;
+    // Show step 2
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
 
-    // Open modal if not open
-    document.getElementById('uploadModal').classList.add('show');
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('fileSize').textContent = (file.size / (1024 * 1024)).toFixed(1) + ' MB';
+
+    // Auto-fill title
+    document.getElementById('bookTitle').value = file.name.replace('.pdf', '').replace(/[_\-]+/g, ' ');
+    document.getElementById('bookSubject').value = '';
+    document.getElementById('bookAuthor').value = '';
+
+    toast('File selected! Fill in the details below.', 'info');
 }
 
-// Process the upload
-async function processUpload() {
+// THE MAIN FIX — Processing with proper error handling
+async function startProcessing() {
     const title = document.getElementById('bookTitle').value.trim();
     const subject = document.getElementById('bookSubject').value;
     const author = document.getElementById('bookAuthor').value.trim();
 
-    if (!title || !subject) {
-        alert('⚠️ Please enter a title and select a subject!');
-        return;
-    }
+    if (!title) { toast('Please enter a book title!', 'warning'); return; }
+    if (!subject) { toast('Please select a subject!', 'warning'); return; }
+    if (!chosenFile) { toast('No file selected!', 'error'); return; }
 
-    if (!currentUploadFile) {
-        alert('⚠️ No file selected!');
-        return;
-    }
+    // Disable button
+    const btn = document.getElementById('uploadGoBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Processing...';
 
     // Show progress
     document.getElementById('uploadProgress').style.display = 'block';
-    document.getElementById('uploadBtn').disabled = true;
-    document.getElementById('uploadBtn').textContent = '⏳ Processing...';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressStatus').textContent = 'Reading PDF file...';
 
     try {
-        // Read PDF
-        const arrayBuffer = await currentUploadFile.arrayBuffer();
+        // Step 1: Read file as ArrayBuffer
+        const arrayBuffer = await readFileAsArrayBuffer(chosenFile);
+
+        document.getElementById('progressStatus').textContent = 'Loading PDF...';
+        document.getElementById('progressFill').style.width = '10%';
+
+        // Step 2: Load PDF with pdf.js
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const totalPages = pdf.numPages;
 
-        let fullText = '';
+        document.getElementById('progressStatus').textContent = `Extracting text from ${totalPages} pages...`;
+        document.getElementById('progressFill').style.width = '20%';
+
+        // Step 3: Extract text page by page
         const pageTexts = [];
+        let fullText = '';
 
         for (let i = 1; i <= totalPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            pageTexts.push(pageText);
-            fullText += pageText + '\n\n';
+            try {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                const text = content.items.map(item => item.str).join(' ').trim();
+                pageTexts.push(text || `[Page ${i} - No extractable text]`);
+                fullText += text + '\n\n';
+            } catch (pageErr) {
+                console.warn(`Page ${i} error:`, pageErr);
+                pageTexts.push(`[Page ${i} - Could not extract]`);
+            }
 
             // Update progress
-            const progress = Math.round((i / totalPages) * 100);
-            document.getElementById('uploadProgressBar').style.width = progress + '%';
-            document.getElementById('uploadStatus').textContent = `Extracting page ${i} of ${totalPages}...`;
+            const pct = 20 + Math.round((i / totalPages) * 60);
+            document.getElementById('progressFill').style.width = pct + '%';
+            document.getElementById('progressStatus').textContent = `Extracting page ${i} / ${totalPages}...`;
         }
 
-        document.getElementById('uploadStatus').textContent = 'Generating questions...';
+        document.getElementById('progressFill').style.width = '85%';
+        document.getElementById('progressStatus').textContent = 'Saving book...';
 
-        // Create book entry
+        // Check if we got any meaningful text
+        const cleanedText = fullText.replace(/\s+/g, ' ').trim();
+        if (cleanedText.length < 50) {
+            toast('⚠️ This PDF has very little readable text. It might be a scanned/image PDF. The book is saved but quizzes may not work well.', 'warning');
+        }
+
+        // Step 4: Save to IndexedDB
         const book = {
             id: 'book_' + Date.now(),
             title: title,
             subject: subject,
-            author: author,
+            author: author || 'Unknown',
             pages: totalPages,
             pageTexts: pageTexts,
-            fullText: fullText,
+            fullText: cleanedText.substring(0, 500000), // Limit to 500k chars
             date: new Date().toLocaleDateString(),
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            textLength: cleanedText.length
         };
 
-        // Save to books array
+        await dbSave('books', book);
+
+        // Update local array
         books.push(book);
-        saveBooks();
+
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('progressStatus').textContent = '✅ Done!';
 
         updateStreak();
         updateDashboard();
 
-        document.getElementById('uploadStatus').textContent = '✅ Book uploaded successfully!';
+        toast(`"${title}" uploaded successfully! ${totalPages} pages extracted.`, 'success');
 
         setTimeout(() => {
             closeUploadModal();
             showSection('library');
-        }, 1000);
+        }, 800);
 
     } catch (error) {
-        console.error('PDF processing error:', error);
-        alert('❌ Error processing PDF. Please try another file.\n\nError: ' + error.message);
-        document.getElementById('uploadBtn').disabled = false;
-        document.getElementById('uploadBtn').textContent = '📤 Upload & Process';
+        console.error('Upload Error:', error);
+        toast(`Upload failed: ${error.message}`, 'error');
+
+        // Show detailed error
+        document.getElementById('progressStatus').textContent = `❌ Error: ${error.message}`;
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('progressFill').style.background = '#ef4444';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 Upload & Process';
     }
 }
 
-function saveBooks() {
-    try {
-        localStorage.setItem('studyBuddyBooks', JSON.stringify(books));
-    } catch (e) {
-        // If localStorage is full, remove oldest book's pageTexts
-        if (e.name === 'QuotaExceededError') {
-            alert('⚠️ Storage is full! Try removing some books.');
-        }
-    }
+// Helper: Read file as ArrayBuffer
+function readFileAsArrayBuffer(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsArrayBuffer(file);
+    });
 }
+
+// Drag and drop
+document.addEventListener('DOMContentLoaded', () => {
+    const zone = document.getElementById('dropZone');
+    if (!zone) return;
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type === 'application/pdf') {
+            chosenFile = file;
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = (file.size / (1024*1024)).toFixed(1) + ' MB';
+            document.getElementById('bookTitle').value = file.name.replace('.pdf','').replace(/[_\-]+/g,' ');
+            toast('File dropped! Fill in details.', 'info');
+        } else {
+            toast('Please drop a PDF file!', 'error');
+        }
+    });
+});
 
 // ============================================
 //   LIBRARY
@@ -269,162 +414,130 @@ function saveBooks() {
 
 function renderLibrary(filter = 'all') {
     const grid = document.getElementById('libraryGrid');
-    const empty = document.getElementById('emptyLibrary');
+    const list = filter === 'all' ? books : books.filter(b => b.subject === filter);
 
-    const filtered = filter === 'all' ? books : books.filter(b => b.subject === filter);
-
-    if (filtered.length === 0) {
+    if (list.length === 0) {
         grid.innerHTML = `
             <div class="empty-library">
                 <span class="empty-icon">📚</span>
-                <h3>${filter === 'all' ? 'Your library is empty' : 'No ' + filter + ' books found'}</h3>
-                <p>Upload your first PDF book to get started!</p>
-                <button class="btn" onclick="document.getElementById('pdfUploadInput').click()">📤 Upload Book</button>
-            </div>
-        `;
+                <h3>${filter === 'all' ? 'Your library is empty' : 'No ' + filter + ' books'}</h3>
+                <p>Upload a PDF to get started!</p>
+                <button class="btn" onclick="openUploadModal()">📤 Upload</button>
+            </div>`;
         return;
     }
 
-    grid.innerHTML = filtered.map(book => `
-        <div class="book-card" data-subject="${book.subject}">
-            <div class="book-card-header" style="background: linear-gradient(135deg, ${getSubjectColor(book.subject)})">
-                <h3>${book.title}</h3>
-                <p>${book.author || 'Unknown Author'}</p>
-                <span class="book-subject-badge">${getSubjectEmoji(book.subject)} ${book.subject.toUpperCase()}</span>
+    grid.innerHTML = list.map(b => `
+        <div class="book-card">
+            <div class="book-card-top" style="background:linear-gradient(135deg,${getColor(b.subject)})">
+                <h3>${b.title}</h3>
+                <p>${b.author}</p>
+                <span class="book-badge">${getEmoji(b.subject)} ${b.subject}</span>
             </div>
-            <div class="book-card-body">
+            <div class="book-card-bottom">
                 <div class="book-meta">
-                    <span>📄 ${book.pages} pages</span>
-                    <span>📅 ${book.date}</span>
+                    <span>📄 ${b.pages} pages</span>
+                    <span>📅 ${b.date}</span>
                 </div>
-                <div class="book-card-actions">
-                    <button class="btn-sm btn-read" onclick="openReader('${book.id}')">📖 Read</button>
-                    <button class="btn-sm btn-quiz" onclick="startQuizFromLibrary('${book.id}')">🧠 Quiz</button>
-                    <button class="btn-sm btn-flash" onclick="startFlashcardsFromLibrary('${book.id}')">🔤 Cards</button>
-                    <button class="btn-sm btn-delete" onclick="deleteBook('${book.id}')">🗑️</button>
+                <div class="book-actions">
+                    <button class="btn-sm btn-read" onclick="openReader('${b.id}')">📖 Read</button>
+                    <button class="btn-sm btn-quiz" onclick="goQuiz('${b.id}')">🧠 Quiz</button>
+                    <button class="btn-sm btn-flash" onclick="goFlash('${b.id}')">🔤 Cards</button>
+                    <button class="btn-sm btn-delete" onclick="removeBook('${b.id}')">🗑️</button>
                 </div>
             </div>
         </div>
     `).join('');
 }
 
-function getSubjectColor(subject) {
-    const colors = {
-        math: '#4f46e5, #7c3aed',
-        english: '#059669, #10b981',
-        hindi: '#db2777, #ec4899',
-        science: '#0891b2, #06b6d4',
-        social: '#d97706, #f59e0b',
-        computer: '#7c3aed, #8b5cf6',
-        other: '#64748b, #94a3b8'
-    };
-    return colors[subject] || colors.other;
-}
-
-function filterBooks(filter, btn) {
+function filterBooks(f, btn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
-    renderLibrary(filter);
+    renderLibrary(f);
 }
 
-function deleteBook(bookId) {
-    if (!confirm('🗑️ Are you sure you want to delete this book?')) return;
-    books = books.filter(b => b.id !== bookId);
-    saveBooks();
+async function removeBook(id) {
+    if (!confirm('Delete this book?')) return;
+    await dbDelete('books', id);
+    books = books.filter(b => b.id !== id);
     renderLibrary();
     updateDashboard();
+    toast('Book deleted.', 'info');
 }
 
 // ============================================
 //   READER
 // ============================================
 
-function openReader(bookId) {
-    const book = books.find(b => b.id === bookId);
-    if (!book) return;
-
-    currentReaderBook = book;
-    currentReaderPage = 0;
+async function openReader(id) {
+    let book = books.find(b => b.id === id);
+    if (!book) {
+        book = await dbGet('books', id);
+        if (!book) { toast('Book not found!', 'error'); return; }
+    }
+    readerBook = book;
+    readerPage = 0;
     showSection('reader');
-    renderReaderPage();
-    document.getElementById('readerBookTitle').textContent = `📘 ${book.title} — ${book.subject.toUpperCase()}`;
+    document.getElementById('readerTitle').textContent = `📖 ${book.title}`;
+    renderPage();
 }
 
-function renderReaderPage() {
-    if (!currentReaderBook) return;
-
-    const content = document.getElementById('readerContent');
-    const pageTexts = currentReaderBook.pageTexts;
-    const text = pageTexts[currentReaderPage] || 'No content on this page.';
-
-    content.textContent = text;
-
-    document.getElementById('currentPage').textContent = currentReaderPage + 1;
-    document.getElementById('totalPages').textContent = pageTexts.length;
+function renderPage() {
+    if (!readerBook) return;
+    const text = readerBook.pageTexts[readerPage] || 'No content on this page.';
+    document.getElementById('readerContent').textContent = text;
+    document.getElementById('currentPage').textContent = readerPage + 1;
+    document.getElementById('totalPages').textContent = readerBook.pageTexts.length;
 }
 
-function nextPage() {
-    if (!currentReaderBook) return;
-    if (currentReaderPage < currentReaderBook.pageTexts.length - 1) {
-        currentReaderPage++;
-        renderReaderPage();
-    }
-}
-
-function prevPage() {
-    if (!currentReaderBook) return;
-    if (currentReaderPage > 0) {
-        currentReaderPage--;
-        renderReaderPage();
-    }
-}
+function nextPage() { if (readerBook && readerPage < readerBook.pageTexts.length - 1) { readerPage++; renderPage(); } }
+function prevPage() { if (readerBook && readerPage > 0) { readerPage--; renderPage(); } }
 
 // ============================================
-//   QUIZ - AUTO GENERATED FROM BOOK
+//   QUIZ — AUTO GENERATED
 // ============================================
 
-function populateBookSelect(selectId) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
-
-    const currentVal = select.value;
-    select.innerHTML = '<option value="">-- Select a Book --</option>';
-    books.forEach(book => {
-        const opt = document.createElement('option');
-        opt.value = book.id;
-        opt.textContent = `${getSubjectEmoji(book.subject)} ${book.title}`;
-        select.appendChild(opt);
+function fillBookSelect(selectId) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const val = sel.value;
+    sel.innerHTML = '<option value="">-- Select a Book --</option>';
+    books.forEach(b => {
+        const o = document.createElement('option');
+        o.value = b.id; o.textContent = `${getEmoji(b.subject)} ${b.title}`;
+        sel.appendChild(o);
     });
-    select.value = currentVal;
+    sel.value = val;
 }
 
-function startQuizFromLibrary(bookId) {
+function goQuiz(id) {
     showSection('quiz');
-    setTimeout(() => {
-        document.getElementById('quizBookSelect').value = bookId;
-        loadQuizForBook(bookId);
-    }, 100);
+    setTimeout(() => { document.getElementById('quizBookSelect').value = id; loadQuizForBook(id); }, 100);
 }
 
-function loadQuizForBook(bookId) {
-    if (!bookId) return;
-    const book = books.find(b => b.id === bookId);
-    if (!book) return;
+function loadQuizForBook(id) {
+    if (!id) return;
+    const book = books.find(b => b.id === id);
+    if (!book) { toast('Book not found!', 'error'); return; }
 
-    // Generate questions from book text
-    quizQuestions = generateQuestions(book.fullText, book.subject);
-    currentQuizIndex = 0;
-    quizCorrect = 0;
-    quizWrong = 0;
-
-    if (quizQuestions.length === 0) {
+    if (!book.fullText || book.fullText.trim().length < 100) {
         document.getElementById('quizArea').innerHTML = `
-            <div class="empty-reader">
-                <span class="empty-icon">⚠️</span>
-                <h3>Not enough content</h3>
-                <p>This book doesn't have enough readable text to generate questions. Try uploading a text-rich PDF.</p>
-            </div>
-        `;
+            <div class="empty-state"><span>⚠️</span>
+            <h3>Not enough text</h3>
+            <p>This PDF doesn't have enough readable text for a quiz. It might be a scanned/image PDF.</p></div>`;
+        document.getElementById('quizContainer').style.display = 'none';
+        document.getElementById('quizResults').style.display = 'none';
+        return;
+    }
+
+    quizQs = makeQuestions(book.fullText, book.subject);
+    quizIdx = 0; qCorrect = 0; qWrong = 0;
+
+    if (quizQs.length === 0) {
+        document.getElementById('quizArea').innerHTML = `
+            <div class="empty-state"><span>⚠️</span>
+            <h3>Couldn't generate questions</h3>
+            <p>Try a different book with more text content.</p></div>`;
         document.getElementById('quizContainer').style.display = 'none';
         document.getElementById('quizResults').style.display = 'none';
         return;
@@ -434,362 +547,264 @@ function loadQuizForBook(bookId) {
     document.getElementById('quizContainer').style.display = 'block';
     document.getElementById('quizResults').style.display = 'none';
 
-    showQuizQuestion();
+    showQ();
     updateStreak();
+    toast(`Quiz loaded! ${quizQs.length} questions from "${book.title}"`, 'success');
 }
 
-function generateQuestions(text, subject) {
-    const questions = [];
-    const cleanText = text.replace(/\s+/g, ' ').trim();
+function makeQuestions(text, subject) {
+    const qs = [];
+    const clean = text.replace(/\s+/g, ' ').trim();
 
-    // Split into sentences
-    const sentences = cleanText
-        .split(/[.!?।]+/)
+    const sentences = clean.split(/[.!?।]+/)
         .map(s => s.trim())
-        .filter(s => s.length > 30 && s.length < 300 && /[a-zA-Zа-яА-Я\u0900-\u097F]/.test(s));
+        .filter(s => s.length > 25 && s.length < 250 && /[a-zA-Z\u0900-\u097F]{3,}/.test(s));
 
-    if (sentences.length < 4) return [];
+    if (sentences.length < 3) return [];
 
-    // Extract key words (longer, meaningful words)
-    const wordFreq = {};
-    const allWords = cleanText.split(/\s+/).filter(w => w.length > 4 && !/^\d+$/.test(w) && !/^[^a-zA-Z\u0900-\u097F]+$/.test(w));
-    allWords.forEach(w => {
-        const lower = w.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
-        if (lower.length > 4) wordFreq[lower] = (wordFreq[lower] || 0) + 1;
+    // Get important words
+    const freq = {};
+    clean.split(/\s+/).forEach(w => {
+        const c = w.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
+        if (c.length > 4) freq[c] = (freq[c] || 0) + 1;
     });
 
-    const importantWords = Object.entries(wordFreq)
-        .filter(([w, c]) => c >= 2 && c <= 20)
+    const keywords = Object.entries(freq)
+        .filter(([w, c]) => c >= 2 && c <= 25)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 50)
+        .slice(0, 40)
         .map(([w]) => w);
 
-    // 1. FILL IN THE BLANK questions
-    const usedSentences = new Set();
-    for (let i = 0; i < sentences.length && questions.length < 8; i++) {
-        const sentence = sentences[i];
-        if (usedSentences.has(sentence)) continue;
+    const used = new Set();
 
-        // Find an important word in this sentence
-        const words = sentence.split(/\s+/);
-        let targetWord = null;
-        let targetIndex = -1;
+    // Fill in blank
+    for (const s of sentences) {
+        if (qs.length >= 6 || used.has(s)) continue;
+        const words = s.split(/\s+/);
+        let target = null, tIdx = -1;
 
         for (let j = 0; j < words.length; j++) {
-            const clean = words[j].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
-            if (importantWords.includes(clean) && clean.length > 4) {
-                targetWord = words[j];
-                targetIndex = j;
-                break;
-            }
+            const c = words[j].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
+            if (keywords.includes(c) && c.length > 4) { target = words[j]; tIdx = j; break; }
         }
 
-        if (!targetWord) continue;
-        usedSentences.add(sentence);
+        if (!target) continue;
+        used.add(s);
 
-        // Create blank sentence
-        const blankSentence = words.map((w, idx) => idx === targetIndex ? '________' : w).join(' ');
+        const blank = words.map((w, i) => i === tIdx ? '________' : w).join(' ');
+        const cleanT = target.replace(/[^a-zA-Z\u0900-\u097F\s]/g, '');
+        const wrongs = keywords.filter(w => w !== cleanT.toLowerCase()).sort(() => Math.random() - 0.5).slice(0, 3);
+        if (wrongs.length < 3) continue;
 
-        // Generate wrong options
-        const wrongOptions = importantWords
-            .filter(w => w !== targetWord.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, ''))
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3);
-
-        if (wrongOptions.length < 3) continue;
-
-        const cleanTarget = targetWord.replace(/[^a-zA-Z\u0900-\u097F\s]/g, '');
-        const allOptions = [cleanTarget, ...wrongOptions].sort(() => Math.random() - 0.5);
-        const correctIdx = allOptions.indexOf(cleanTarget);
-
-        questions.push({
-            type: 'fill',
-            question: `Fill in the blank:\n\n"${blankSentence}"`,
-            options: allOptions,
-            answer: correctIdx
-        });
+        const opts = [cleanT, ...wrongs].sort(() => Math.random() - 0.5);
+        qs.push({ q: `Fill in the blank:\n\n"${blank}"`, opts, ans: opts.indexOf(cleanT) });
     }
 
-    // 2. TRUE/FALSE questions
-    for (let i = 0; i < sentences.length && questions.length < 12; i++) {
-        const sentence = sentences[i];
-        if (usedSentences.has(sentence) || sentence.length > 200) continue;
-        if (Math.random() > 0.4) continue;
-
-        usedSentences.add(sentence);
-        const isTrue = Math.random() > 0.5;
-
-        let displaySentence = sentence;
-        if (!isTrue) {
-            // Modify sentence slightly to make it false
-            const words = sentence.split(/\s+/);
-            if (words.length > 5) {
-                // Swap two words to create a false statement
-                const idx1 = Math.floor(Math.random() * (words.length - 2)) + 1;
-                const idx2 = Math.min(idx1 + 2, words.length - 1);
-                [words[idx1], words[idx2]] = [words[idx2], words[idx1]];
-                displaySentence = words.join(' ');
-            }
-        }
-
-        questions.push({
-            type: 'tf',
-            question: `True or False?\n\n"${displaySentence}"`,
-            options: ['True', 'False'],
-            answer: isTrue ? 0 : 1
-        });
-    }
-
-    // 3. WHICH SENTENCE questions (from the text)
-    for (let i = 0; i < Math.min(sentences.length - 3, 5) && questions.length < 15; i++) {
+    // True/False
+    for (const s of sentences) {
+        if (qs.length >= 10 || used.has(s) || s.length > 180) continue;
         if (Math.random() > 0.5) continue;
+        used.add(s);
 
-        const correctSentence = sentences[Math.floor(Math.random() * sentences.length)];
-        if (usedSentences.has(correctSentence) || correctSentence.length > 150) continue;
-        usedSentences.add(correctSentence);
+        const isTrue = Math.random() > 0.5;
+        let display = s;
+        if (!isTrue) {
+            const w = s.split(/\s+/);
+            if (w.length > 4) {
+                const i = Math.floor(Math.random() * (w.length - 2)) + 1;
+                const j = Math.min(i + 2, w.length - 1);
+                [w[i], w[j]] = [w[j], w[i]];
+                display = w.join(' ');
+            }
+        }
 
-        // Create a question about what the text mentions
-        const preview = correctSentence.substring(0, 60) + '...';
-
-        const wrongSentences = [
-            'This topic is not discussed in the chapter.',
-            'The book does not mention this concept.',
-            'This statement is from a different subject.'
-        ];
-
-        const allOpts = [preview, ...wrongSentences].sort(() => Math.random() - 0.5);
-        const correctIdx = allOpts.indexOf(preview);
-
-        questions.push({
-            type: 'mention',
-            question: 'Which of the following is mentioned in the text?',
-            options: allOpts,
-            answer: correctIdx
-        });
+        qs.push({ q: `True or False?\n\n"${display}"`, opts: ['True', 'False'], ans: isTrue ? 0 : 1 });
     }
 
-    // Shuffle and limit
-    return questions.sort(() => Math.random() - 0.5).slice(0, 10);
+    // "Which is mentioned?"
+    for (let i = 0; i < 4 && qs.length < 12; i++) {
+        const s = sentences[Math.floor(Math.random() * sentences.length)];
+        if (used.has(s) || s.length > 140) continue;
+        used.add(s);
+
+        const preview = s.length > 70 ? s.substring(0, 70) + '...' : s;
+        const wrongs = ['This is not mentioned in the text.', 'The book does not discuss this.', 'This belongs to a different topic.'];
+        const opts = [preview, ...wrongs].sort(() => Math.random() - 0.5);
+
+        qs.push({ q: 'Which of the following is mentioned in your book?', opts, ans: opts.indexOf(preview) });
+    }
+
+    return qs.sort(() => Math.random() - 0.5).slice(0, 10);
 }
 
-function showQuizQuestion() {
-    if (currentQuizIndex >= quizQuestions.length) {
-        showQuizResults();
-        return;
-    }
+function showQ() {
+    if (quizIdx >= quizQs.length) { showResults(); return; }
+    const q = quizQs[quizIdx];
+    const total = quizQs.length;
 
-    const q = quizQuestions[currentQuizIndex];
-    const total = quizQuestions.length;
-
-    document.getElementById('quizProgress').style.width = ((currentQuizIndex / total) * 100) + '%';
-    document.getElementById('quizProgressText').textContent = `Question ${currentQuizIndex + 1} of ${total}`;
-    document.getElementById('quizQuestion').textContent = q.question;
-    document.getElementById('quizResult').textContent = '';
+    document.getElementById('quizProgress').style.width = ((quizIdx / total) * 100) + '%';
+    document.getElementById('quizProgressText').textContent = `Q ${quizIdx + 1} / ${total}`;
+    document.getElementById('quizQuestion').textContent = q.q;
+    document.getElementById('quizFeedback').textContent = '';
     document.getElementById('nextQuizBtn').style.display = 'none';
 
     const optDiv = document.getElementById('quizOptions');
     optDiv.innerHTML = '';
-    q.options.forEach((opt, i) => {
+    q.opts.forEach((o, i) => {
         const btn = document.createElement('button');
-        btn.textContent = opt;
-        btn.onclick = () => selectQuizAnswer(i, q.answer, btn);
+        btn.textContent = o;
+        btn.onclick = () => pickAnswer(i, q.ans, btn);
         optDiv.appendChild(btn);
     });
 
-    document.getElementById('quizCorrect').textContent = quizCorrect;
-    document.getElementById('quizWrong').textContent = quizWrong;
-    const total2 = quizCorrect + quizWrong;
-    document.getElementById('quizScorePercent').textContent = total2 > 0 ? Math.round((quizCorrect / total2) * 100) + '%' : '0%';
+    updateScoreBar();
 }
 
-function selectQuizAnswer(selected, correct, btn) {
-    // Disable all buttons
+function pickAnswer(pick, correct, btn) {
     const btns = document.getElementById('quizOptions').querySelectorAll('button');
-    btns.forEach(b => b.onclick = null);
+    btns.forEach(b => { b.onclick = null; b.classList.add('disabled'); });
 
-    if (selected === correct) {
-        quizCorrect++;
-        btn.classList.add('correct');
-        document.getElementById('quizResult').textContent = '✅ Correct! Well done!';
-        document.getElementById('quizResult').style.color = '#10b981';
+    if (pick === correct) {
+        qCorrect++; btn.classList.add('correct');
+        document.getElementById('quizFeedback').textContent = '✅ Correct!';
+        document.getElementById('quizFeedback').style.color = '#10b981';
     } else {
-        quizWrong++;
-        btn.classList.add('wrong');
-        btns[correct].classList.add('correct');
-        document.getElementById('quizResult').textContent = '❌ Wrong! See the correct answer above.';
-        document.getElementById('quizResult').style.color = '#ef4444';
+        qWrong++; btn.classList.add('wrong'); btns[correct].classList.add('correct');
+        document.getElementById('quizFeedback').textContent = '❌ Wrong!';
+        document.getElementById('quizFeedback').style.color = '#ef4444';
     }
 
-    document.getElementById('quizCorrect').textContent = quizCorrect;
-    document.getElementById('quizWrong').textContent = quizWrong;
-    const t = quizCorrect + quizWrong;
-    document.getElementById('quizScorePercent').textContent = t > 0 ? Math.round((quizCorrect / t) * 100) + '%' : '0%';
-
+    updateScoreBar();
     document.getElementById('nextQuizBtn').style.display = 'inline-block';
 }
 
-function nextQuizQuestion() {
-    currentQuizIndex++;
-    showQuizQuestion();
+function nextQuizQuestion() { quizIdx++; showQ(); }
+
+function updateScoreBar() {
+    document.getElementById('quizCorrect').textContent = qCorrect;
+    document.getElementById('quizWrong').textContent = qWrong;
+    const t = qCorrect + qWrong;
+    document.getElementById('quizPercent').textContent = t > 0 ? Math.round((qCorrect / t) * 100) + '%' : '0%';
 }
 
-function showQuizResults() {
+function showResults() {
     document.getElementById('quizContainer').style.display = 'none';
     document.getElementById('quizResults').style.display = 'block';
 
-    const total = quizCorrect + quizWrong;
-    const percent = total > 0 ? Math.round((quizCorrect / total) * 100) : 0;
+    const t = qCorrect + qWrong;
+    const pct = t > 0 ? Math.round((qCorrect / t) * 100) : 0;
 
-    document.getElementById('resultPercent').textContent = percent + '%';
-    document.getElementById('finalCorrect').textContent = quizCorrect;
-    document.getElementById('finalWrong').textContent = quizWrong;
-    document.getElementById('finalTotal').textContent = total;
+    document.getElementById('resultPercent').textContent = pct + '%';
+    document.getElementById('finalCorrect').textContent = qCorrect;
+    document.getElementById('finalWrong').textContent = qWrong;
+    document.getElementById('finalTotal').textContent = t;
 
     const circle = document.getElementById('resultCircle');
-    if (percent >= 80) {
-        circle.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        document.getElementById('resultMessage').textContent = '🌟 Excellent! You really know this material!';
-    } else if (percent >= 60) {
-        circle.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-        document.getElementById('resultMessage').textContent = '👍 Good job! Keep studying to improve!';
+    if (pct >= 80) {
+        circle.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+        document.getElementById('resultMessage').textContent = '🌟 Excellent work, Samuel!';
+    } else if (pct >= 50) {
+        circle.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+        document.getElementById('resultMessage').textContent = '👍 Good effort! Keep it up!';
     } else {
-        circle.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        document.getElementById('resultMessage').textContent = '📖 Keep reading! Practice makes perfect!';
+        circle.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+        document.getElementById('resultMessage').textContent = '📖 Read more and try again!';
     }
 
-    // Update stats
-    stats.quizzesTaken++;
-    stats.totalCorrect += quizCorrect;
-    stats.totalAnswered += total;
-    saveStats();
+    stats.quizzesTaken++; stats.totalCorrect += qCorrect; stats.totalAnswered += t;
+    localStorage.setItem('sbStats', JSON.stringify(stats));
+    updateDashboard();
 }
 
 // ============================================
-//   FLASHCARDS - AUTO GENERATED
+//   FLASHCARDS
 // ============================================
 
-function startFlashcardsFromLibrary(bookId) {
+function goFlash(id) {
     showSection('flashcards');
-    setTimeout(() => {
-        document.getElementById('flashcardBookSelect').value = bookId;
-        loadFlashcardsForBook(bookId);
-    }, 100);
+    setTimeout(() => { document.getElementById('flashcardBookSelect').value = id; loadFlashcardsForBook(id); }, 100);
 }
 
-function loadFlashcardsForBook(bookId) {
-    if (!bookId) return;
-    const book = books.find(b => b.id === bookId);
-    if (!book) return;
-
-    flashcards = generateFlashcards(book.fullText);
-    currentFCIndex = 0;
-
-    if (flashcards.length === 0) {
+function loadFlashcardsForBook(id) {
+    if (!id) return;
+    const book = books.find(b => b.id === id);
+    if (!book || !book.fullText || book.fullText.length < 100) {
         document.getElementById('flashcardArea').innerHTML = `
-            <div class="empty-reader">
-                <span class="empty-icon">⚠️</span>
-                <h3>Not enough content</h3>
-                <p>Cannot generate flashcards from this book.</p>
-            </div>
-        `;
+            <div class="empty-state"><span>⚠️</span><h3>Not enough text</h3><p>Can't generate flashcards.</p></div>`;
+        document.getElementById('flashcardContainer').style.display = 'none';
+        return;
+    }
+
+    fcards = makeFlashcards(book.fullText);
+    fcIdx = 0;
+
+    if (fcards.length === 0) {
+        document.getElementById('flashcardArea').innerHTML = `
+            <div class="empty-state"><span>⚠️</span><h3>Couldn't generate cards</h3><p>Try a different book.</p></div>`;
         document.getElementById('flashcardContainer').style.display = 'none';
         return;
     }
 
     document.getElementById('flashcardArea').innerHTML = '';
     document.getElementById('flashcardContainer').style.display = 'block';
-    showCurrentFC();
+    showFC();
+    toast(`${fcards.length} flashcards ready!`, 'success');
 }
 
-function generateFlashcards(text) {
+function makeFlashcards(text) {
     const cards = [];
-    const cleanText = text.replace(/\s+/g, ' ').trim();
+    const sentences = text.split(/[.!?।]+/).map(s => s.trim()).filter(s => s.length > 20 && s.length < 200);
 
-    const sentences = cleanText
-        .split(/[.!?।]+/)
-        .map(s => s.trim())
-        .filter(s => s.length > 25 && s.length < 250);
-
-    // Extract keyword-context pairs
-    const wordFreq = {};
-    cleanText.split(/\s+/).forEach(w => {
-        const clean = w.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
-        if (clean.length > 5) wordFreq[clean] = (wordFreq[clean] || 0) + 1;
+    const freq = {};
+    text.split(/\s+/).forEach(w => {
+        const c = w.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
+        if (c.length > 5) freq[c] = (freq[c] || 0) + 1;
     });
 
-    const keywords = Object.entries(wordFreq)
-        .filter(([w, c]) => c >= 2 && c <= 15)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 30)
-        .map(([w]) => w);
+    const kw = Object.entries(freq).filter(([,c]) => c >= 2 && c <= 15).sort((a,b) => b[1]-a[1]).slice(0,25).map(([w]) => w);
+    const usedKw = new Set();
 
-    const usedKeywords = new Set();
-
-    for (const sentence of sentences) {
+    for (const s of sentences) {
         if (cards.length >= 20) break;
-
-        for (const keyword of keywords) {
-            if (usedKeywords.has(keyword)) continue;
-            if (sentence.toLowerCase().includes(keyword)) {
-                cards.push({
-                    front: keyword.charAt(0).toUpperCase() + keyword.slice(1),
-                    back: sentence.length > 150 ? sentence.substring(0, 150) + '...' : sentence
-                });
-                usedKeywords.add(keyword);
+        for (const k of kw) {
+            if (usedKw.has(k)) continue;
+            if (s.toLowerCase().includes(k)) {
+                cards.push({ front: k.charAt(0).toUpperCase() + k.slice(1), back: s });
+                usedKw.add(k);
                 break;
             }
         }
     }
 
-    // If we got very few keyword cards, just use sentences
     if (cards.length < 5) {
-        const selectedSentences = sentences
-            .filter(s => s.length > 30 && s.length < 200)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 15);
-
-        selectedSentences.forEach((s, i) => {
-            const words = s.split(/\s+/);
-            const halfIdx = Math.floor(words.length / 2);
-            cards.push({
-                front: words.slice(0, halfIdx).join(' ') + '...',
-                back: s
-            });
+        sentences.sort(() => Math.random() - 0.5).slice(0, 12).forEach(s => {
+            const w = s.split(/\s+/);
+            const h = Math.floor(w.length / 2);
+            cards.push({ front: w.slice(0, h).join(' ') + '...', back: s });
         });
     }
 
     return cards;
 }
 
-function showCurrentFC() {
-    if (flashcards.length === 0) return;
-    const card = flashcards[currentFCIndex];
-    document.getElementById('fcFront').textContent = card.front;
-    document.getElementById('fcBack').textContent = card.back;
-    document.getElementById('fcCount').textContent = `${currentFCIndex + 1} / ${flashcards.length}`;
-    document.getElementById('flashcardDeck').classList.remove('flipped');
+function showFC() {
+    if (fcards.length === 0) return;
+    document.getElementById('fcFront').textContent = fcards[fcIdx].front;
+    document.getElementById('fcBack').textContent = fcards[fcIdx].back;
+    document.getElementById('fcCount').textContent = `${fcIdx + 1} / ${fcards.length}`;
+    document.getElementById('fcCard').classList.remove('flipped');
 }
 
-function flipCurrentCard() {
-    document.getElementById('flashcardDeck').classList.toggle('flipped');
-}
-
-function nextFC() {
-    currentFCIndex = (currentFCIndex + 1) % flashcards.length;
-    showCurrentFC();
-}
-
-function prevFC() {
-    currentFCIndex = (currentFCIndex - 1 + flashcards.length) % flashcards.length;
-    showCurrentFC();
-}
+function flipFC() { document.getElementById('fcCard').classList.toggle('flipped'); }
+function nextFC() { fcIdx = (fcIdx + 1) % fcards.length; showFC(); }
+function prevFC() { fcIdx = (fcIdx - 1 + fcards.length) % fcards.length; showFC(); }
 
 // ============================================
-//   NOTES SYSTEM
+//   NOTES
 // ============================================
 
-function addNewNote() {
-    editingNoteId = null;
+function openNoteEditor() {
+    editNoteId = null;
     document.getElementById('noteEditor').style.display = 'block';
     document.getElementById('noteTitle').value = '';
     document.getElementById('noteSubject').value = 'general';
@@ -797,175 +812,126 @@ function addNewNote() {
     document.getElementById('noteTitle').focus();
 }
 
-function saveNote() {
+function closeNoteEditor() { document.getElementById('noteEditor').style.display = 'none'; }
+
+async function saveNote() {
     const title = document.getElementById('noteTitle').value.trim();
     const subject = document.getElementById('noteSubject').value;
     const content = document.getElementById('noteContent').value.trim();
 
-    if (!title || !content) {
-        alert('⚠️ Please enter a title and content!');
-        return;
-    }
+    if (!title || !content) { toast('Enter title and content!', 'warning'); return; }
 
-    if (editingNoteId) {
-        const note = notes.find(n => n.id === editingNoteId);
-        if (note) {
-            note.title = title;
-            note.subject = subject;
-            note.content = content;
-            note.modified = new Date().toLocaleDateString();
-        }
+    if (editNoteId) {
+        const n = notesArr.find(n => n.id === editNoteId);
+        if (n) { n.title = title; n.subject = subject; n.content = content; n.modified = new Date().toLocaleDateString(); await dbSave('notes', n); }
     } else {
-        notes.push({
-            id: 'note_' + Date.now(),
-            title, subject, content,
-            date: new Date().toLocaleDateString(),
-            modified: new Date().toLocaleDateString()
-        });
+        const note = { id: 'note_' + Date.now(), title, subject, content, date: new Date().toLocaleDateString(), modified: new Date().toLocaleDateString() };
+        notesArr.push(note);
+        await dbSave('notes', note);
     }
 
-    localStorage.setItem('studyBuddyNotes', JSON.stringify(notes));
-    document.getElementById('noteEditor').style.display = 'none';
+    closeNoteEditor();
     renderNotes();
+    toast('Note saved!', 'success');
     updateStreak();
 }
 
-function cancelNote() {
-    document.getElementById('noteEditor').style.display = 'none';
-}
-
 function renderNotes() {
-    const container = document.getElementById('notesList');
-    if (!container) return;
+    const c = document.getElementById('notesList');
+    if (!c) return;
 
-    if (notes.length === 0) {
-        container.innerHTML = `
-            <div class="empty-reader">
-                <span class="empty-icon">📝</span>
-                <h3>No notes yet</h3>
-                <p>Click "New Note" to start writing!</p>
-            </div>
-        `;
+    if (notesArr.length === 0) {
+        c.innerHTML = `<div class="empty-state"><span>📝</span><h3>No notes</h3><p>Click "+ New Note" to start!</p></div>`;
         return;
     }
 
-    container.innerHTML = notes.slice().reverse().map(note => `
-        <div class="note-card" onclick="editNote('${note.id}')">
-            <button class="note-delete" onclick="event.stopPropagation(); deleteNote('${note.id}')">✕</button>
-            <h4>${note.title}</h4>
-            <span class="note-subject-tag">${getSubjectEmoji(note.subject)} ${note.subject}</span>
-            <p>${note.content.substring(0, 150)}${note.content.length > 150 ? '...' : ''}</p>
-            <span class="note-date">📅 ${note.modified || note.date}</span>
+    c.innerHTML = notesArr.slice().reverse().map(n => `
+        <div class="note-card" onclick="editExistingNote('${n.id}')">
+            <button class="note-del" onclick="event.stopPropagation();deleteNote('${n.id}')">✕</button>
+            <h4>${n.title}</h4>
+            <span class="note-tag">${getEmoji(n.subject)} ${n.subject}</span>
+            <p>${n.content.substring(0, 120)}${n.content.length > 120 ? '...' : ''}</p>
+            <span class="note-date">📅 ${n.modified || n.date}</span>
         </div>
     `).join('');
 }
 
-function editNote(noteId) {
-    const note = notes.find(n => n.id === noteId);
-    if (!note) return;
-
-    editingNoteId = noteId;
+function editExistingNote(id) {
+    const n = notesArr.find(n => n.id === id);
+    if (!n) return;
+    editNoteId = id;
     document.getElementById('noteEditor').style.display = 'block';
-    document.getElementById('noteTitle').value = note.title;
-    document.getElementById('noteSubject').value = note.subject;
-    document.getElementById('noteContent').value = note.content;
+    document.getElementById('noteTitle').value = n.title;
+    document.getElementById('noteSubject').value = n.subject;
+    document.getElementById('noteContent').value = n.content;
 }
 
-function deleteNote(noteId) {
-    if (!confirm('🗑️ Delete this note?')) return;
-    notes = notes.filter(n => n.id !== noteId);
-    localStorage.setItem('studyBuddyNotes', JSON.stringify(notes));
+async function deleteNote(id) {
+    if (!confirm('Delete note?')) return;
+    await dbDelete('notes', id);
+    notesArr = notesArr.filter(n => n.id !== id);
     renderNotes();
+    toast('Note deleted.', 'info');
 }
 
 // ============================================
 //   TIMER
 // ============================================
 
-let timerInterval = null;
-let timeLeft = 25 * 60;
-let timerTotal = 25 * 60;
+let timerInt = null;
+let tLeft = 25 * 60;
+let tTotal = 25 * 60;
 
-function updateTimerDisplay() {
-    const mins = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-    const secs = (timeLeft % 60).toString().padStart(2, '0');
-    document.getElementById('timerDisplay').textContent = `${mins}:${secs}`;
+function updateTimer() {
+    const m = Math.floor(tLeft / 60).toString().padStart(2, '0');
+    const s = (tLeft % 60).toString().padStart(2, '0');
+    document.getElementById('timerDisplay').textContent = `${m}:${s}`;
 
-    // Update ring
     const ring = document.getElementById('timerRing');
     if (ring) {
-        const circumference = 2 * Math.PI * 110; // radius = 110
-        const offset = circumference * (1 - timeLeft / timerTotal);
-        ring.style.strokeDashoffset = offset;
+        const circ = 2 * Math.PI * 105;
+        ring.style.strokeDashoffset = circ * (1 - tLeft / tTotal);
     }
 }
 
 function startTimer() {
-    if (timerInterval) return;
+    if (timerInt) return;
     updateStreak();
-    timerInterval = setInterval(() => {
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            alert('⏰ Time is up! Great study session, Samuel!');
-            return;
-        }
-        timeLeft--;
-        updateTimerDisplay();
+    timerInt = setInterval(() => {
+        if (tLeft <= 0) { clearInterval(timerInt); timerInt = null; toast('⏰ Time up! Great session!', 'success'); return; }
+        tLeft--; updateTimer();
     }, 1000);
 }
 
-function pauseTimer() { clearInterval(timerInterval); timerInterval = null; }
-
-function resetTimer() { pauseTimer(); timeLeft = timerTotal; updateTimerDisplay(); }
-
-function setTimer(mins) {
-    pauseTimer();
-    timeLeft = mins * 60;
-    timerTotal = mins * 60;
-    updateTimerDisplay();
-}
+function pauseTimer() { clearInterval(timerInt); timerInt = null; }
+function resetTimer() { pauseTimer(); tLeft = tTotal; updateTimer(); }
+function setTimer(m) { pauseTimer(); tLeft = m * 60; tTotal = m * 60; updateTimer(); }
 
 // ============================================
-//   DRAG & DROP
+//   INIT
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    const zone = document.getElementById('uploadZone');
-    if (zone) {
-        zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-        zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-        zone.addEventListener('drop', e => {
-            e.preventDefault();
-            zone.classList.remove('drag-over');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type === 'application/pdf') {
-                currentUploadFile = file;
-                document.getElementById('uploadZone').style.display = 'none';
-                document.getElementById('uploadForm').style.display = 'block';
-                document.getElementById('uploadFileName').textContent = file.name;
-                document.getElementById('uploadFileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
-                document.getElementById('bookTitle').value = file.name.replace('.pdf', '').replace(/[_-]/g, ' ');
-            } else {
-                alert('⚠️ Please drop a PDF file!');
-            }
-        });
-        zone.addEventListener('click', () => document.getElementById('pdfUploadInput').click());
-    }
-});
-
-// ============================================
-//   INITIALIZE
-// ============================================
-
-window.onload = function () {
-    // Load theme
+window.onload = async function () {
+    // Theme
     if (localStorage.getItem('sbTheme') === 'dark') {
         document.body.classList.add('dark-theme');
         document.querySelector('.theme-toggle').textContent = '☀️';
     }
 
-    showDailyQuote();
+    showQuote();
+    updateTimer();
+
+    // Open database and load data
+    try {
+        await openDB();
+        books = await dbGetAll('books');
+        notesArr = await dbGetAll('notes');
+        console.log(`✅ Loaded ${books.length} books, ${notesArr.length} notes`);
+        toast(`StudyBuddy ready! ${books.length} books loaded.`, 'success');
+    } catch (err) {
+        console.error('DB init error:', err);
+        toast('Database error. Try refreshing.', 'error');
+    }
+
     updateDashboard();
-    updateTimerDisplay();
 };
