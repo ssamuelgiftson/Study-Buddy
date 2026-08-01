@@ -9,358 +9,455 @@
 </head>
 <body>
 
-    <!-- TOAST NOTIFICATIONS -->
+    <!-- TOAST -->
     <div id="toastContainer" class="toast-container"></div>
 
-    <!-- LOADING OVERLAY -->
+    <!-- LOADING -->
     <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-content">
+        <div class="loading-box">
             <div class="spinner"></div>
             <p id="loadingText">Processing...</p>
         </div>
     </div>
 
-    <!-- NAVIGATION BAR -->
+    <!-- NAVBAR -->
     <nav class="navbar">
-        <div class="logo">📚 StudyBuddy</div>
+        <div class="logo" onclick="showSection('home')">📚 StudyBuddy</div>
         <ul class="nav-links">
-            <li><a href="#" onclick="showSection('home')">🏠 Home</a></li>
-            <li><a href="#" onclick="showSection('library')">📚 Library</a></li>
-            <li><a href="#" onclick="showSection('reader')">📖 Reader</a></li>
-            <li><a href="#" onclick="showSection('quiz')">🧠 Quiz</a></li>
-            <li><a href="#" onclick="showSection('flashcards')">🔤 Cards</a></li>
-            <li><a href="#" onclick="showSection('notes')">📝 Notes</a></li>
-            <li><a href="#" onclick="showSection('timer')">⏱️ Timer</a></li>
+            <li><a href="#" onclick="showSection('home')">🏠</a></li>
+            <li><a href="#" onclick="showSection('library')">📚</a></li>
+            <li><a href="#" onclick="showSection('reader')">📖</a></li>
+            <li><a href="#" onclick="showSection('quiz')">🧠</a></li>
+            <li><a href="#" onclick="showSection('flashcards')">🔤</a></li>
+            <li><a href="#" onclick="showSection('tamil')">🟢</a></li>
+            <li><a href="#" onclick="showSection('notes')">📝</a></li>
+            <li><a href="#" onclick="showSection('timer')">⏱️</a></li>
         </ul>
         <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
     </nav>
 
-    <!-- ==================== HOME ==================== -->
+    <!-- ===== HOME ===== -->
     <section id="home" class="section active">
         <div class="hero">
             <h1>Welcome, Samuel! 👋</h1>
-            <p>Your personal study companion for Grade VIII CBSE</p>
-            <p class="subtitle">Upload your books → Get quizzes & flashcards automatically!</p>
+            <p>Your AI-powered study companion</p>
+            <p class="sub">Upload books → Smart quizzes & flashcards generated!</p>
         </div>
 
         <div class="stats-bar">
-            <div class="stat-item">
-                <span class="stat-number" id="totalBooks">0</span>
-                <span class="stat-label">Books</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="totalQuizzes">0</span>
-                <span class="stat-label">Quizzes</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="totalScore">0%</span>
-                <span class="stat-label">Avg Score</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-number" id="studyStreak">0</span>
-                <span class="stat-label">Streak 🔥</span>
-            </div>
+            <div class="stat"><span class="stat-num" id="totalBooks">0</span><span class="stat-lbl">Books</span></div>
+            <div class="stat"><span class="stat-num" id="totalQuizzes">0</span><span class="stat-lbl">Quizzes</span></div>
+            <div class="stat"><span class="stat-num" id="totalScore">0%</span><span class="stat-lbl">Score</span></div>
+            <div class="stat"><span class="stat-num" id="studyStreak">0</span><span class="stat-lbl">Streak🔥</span></div>
         </div>
 
         <div class="card-grid">
             <div class="card upload-card" onclick="openUploadModal()">
-                <span class="card-icon">📤</span>
-                <h3>Upload Book</h3>
-                <p>Add a new PDF book</p>
+                <span class="ci">📤</span><h3>Upload Book</h3><p>Add PDF book</p>
             </div>
             <div class="card" onclick="showSection('library')">
-                <span class="card-icon">📚</span>
-                <h3>My Library</h3>
-                <p>View uploaded books</p>
+                <span class="ci">📚</span><h3>Library</h3><p>Your books</p>
             </div>
             <div class="card" onclick="showSection('quiz')">
-                <span class="card-icon">🧠</span>
-                <h3>Take Quiz</h3>
-                <p>From your books</p>
+                <span class="ci">🧠</span><h3>Smart Quiz</h3><p>AI questions</p>
             </div>
             <div class="card" onclick="showSection('flashcards')">
-                <span class="card-icon">🔤</span>
-                <h3>Flashcards</h3>
-                <p>Key terms</p>
+                <span class="ci">🔤</span><h3>Flashcards</h3><p>Key terms</p>
+            </div>
+            <div class="card" onclick="showSection('tamil')">
+                <span class="ci">🟢</span><h3>Tamil</h3><p>தமிழ் பயிற்சி</p>
             </div>
             <div class="card" onclick="showSection('notes')">
-                <span class="card-icon">📝</span>
-                <h3>My Notes</h3>
-                <p>Study notes</p>
+                <span class="ci">📝</span><h3>Notes</h3><p>Study notes</p>
             </div>
             <div class="card" onclick="showSection('timer')">
-                <span class="card-icon">⏱️</span>
-                <h3>Study Timer</h3>
-                <p>Pomodoro timer</p>
+                <span class="ci">⏱️</span><h3>Timer</h3><p>Pomodoro</p>
             </div>
         </div>
 
-        <div class="home-section">
+        <div class="home-box">
             <h3>📖 My Books</h3>
-            <div id="recentBooks" class="recent-books">
-                <p class="empty-message">No books yet. Click 📤 Upload Book to get started!</p>
+            <div id="recentBooks" class="recent-row">
+                <p class="empty-msg">No books yet. Click 📤 to upload!</p>
             </div>
         </div>
 
-        <div class="motivation-box">
+        <div class="motive-box">
             <h3>💡 Daily Motivation</h3>
             <p id="dailyQuote"></p>
         </div>
     </section>
 
-    <!-- ==================== LIBRARY ==================== -->
+    <!-- ===== LIBRARY ===== -->
     <section id="library" class="section">
-        <div class="section-header">
-            <h2>📚 My Book Library</h2>
-            <button class="btn btn-upload" onclick="openUploadModal()">📤 Upload Book</button>
+        <div class="sec-head">
+            <h2>📚 My Library</h2>
+            <button class="btn btn-glow" onclick="openUploadModal()">📤 Upload</button>
         </div>
-
         <div class="filter-bar">
-            <button class="filter-btn active" onclick="filterBooks('all', this)">📚 All</button>
-            <button class="filter-btn" onclick="filterBooks('math', this)">📐 Math</button>
-            <button class="filter-btn" onclick="filterBooks('english', this)">📖 English</button>
-            <button class="filter-btn" onclick="filterBooks('hindi', this)">📝 Hindi</button>
-            <button class="filter-btn" onclick="filterBooks('science', this)">🔬 Science</button>
-            <button class="filter-btn" onclick="filterBooks('social', this)">🌍 Social</button>
-            <button class="filter-btn" onclick="filterBooks('computer', this)">💻 Computer</button>
-            <button class="filter-btn" onclick="filterBooks('other', this)">📦 Other</button>
+            <button class="fbtn active" onclick="filterBooks('all',this)">All</button>
+            <button class="fbtn" onclick="filterBooks('math',this)">📐 Math</button>
+            <button class="fbtn" onclick="filterBooks('english',this)">📖 Eng</button>
+            <button class="fbtn" onclick="filterBooks('hindi',this)">📝 Hindi</button>
+            <button class="fbtn" onclick="filterBooks('tamil',this)">🟢 Tamil</button>
+            <button class="fbtn" onclick="filterBooks('science',this)">🔬 Sci</button>
+            <button class="fbtn" onclick="filterBooks('social',this)">🌍 Social</button>
+            <button class="fbtn" onclick="filterBooks('computer',this)">💻 Comp</button>
+            <button class="fbtn" onclick="filterBooks('other',this)">📦 Other</button>
         </div>
-
-        <div id="libraryGrid" class="library-grid">
-            <div class="empty-library">
-                <span class="empty-icon">📚</span>
-                <h3>Your library is empty</h3>
-                <p>Upload your first PDF book!</p>
-                <button class="btn" onclick="openUploadModal()">📤 Upload Book</button>
-            </div>
-        </div>
+        <div id="libraryGrid" class="lib-grid"></div>
     </section>
 
-    <!-- ==================== READER ==================== -->
+    <!-- ===== READER ===== -->
     <section id="reader" class="section">
-        <div class="section-header">
+        <div class="sec-head">
             <h2 id="readerTitle">📖 Book Reader</h2>
-            <div class="reader-controls">
+            <div class="reader-nav">
                 <button class="btn btn-sm" onclick="prevPage()">⬅️</button>
-                <span class="page-info">Page <span id="currentPage">0</span> / <span id="totalPages">0</span></span>
+                <span id="pageInfo">0 / 0</span>
                 <button class="btn btn-sm" onclick="nextPage()">➡️</button>
+                <select id="pageJump" class="sel-sm" onchange="jumpToPage(this.value)"></select>
+                <button class="btn btn-sm" onclick="zoomIn()">🔍+</button>
+                <button class="btn btn-sm" onclick="zoomOut()">🔍-</button>
             </div>
         </div>
-
-        <div id="readerContent" class="reader-content">
-            <div class="empty-state">
-                <span>📖</span>
-                <h3>No book selected</h3>
-                <p>Go to Library and click "Read" on any book</p>
-            </div>
+        <div id="readerArea" class="reader-area">
+            <div class="empty-state"><span>📖</span><h3>No book selected</h3><p>Go to Library → Click "Read"</p></div>
         </div>
     </section>
 
-    <!-- ==================== QUIZ ==================== -->
+    <!-- ===== QUIZ ===== -->
     <section id="quiz" class="section">
-        <div class="section-header">
-            <h2>🧠 Quiz Zone</h2>
-            <select id="quizBookSelect" class="select-input" onchange="loadQuizForBook(this.value)">
-                <option value="">-- Select a Book --</option>
+        <div class="sec-head">
+            <h2>🧠 Smart Quiz</h2>
+            <select id="quizBookSel" class="sel-input" onchange="loadQuiz(this.value)">
+                <option value="">-- Pick a Book --</option>
             </select>
         </div>
-
         <div id="quizArea">
-            <div class="empty-state">
-                <span>🧠</span>
-                <h3>Select a book to start quiz</h3>
-                <p>Questions are generated from your uploaded books!</p>
-            </div>
+            <div class="empty-state"><span>🧠</span><h3>Select a book</h3><p>AI generates questions from your book!</p></div>
         </div>
-
-        <div id="quizContainer" class="quiz-box" style="display:none;">
-            <div class="quiz-progress-wrap">
-                <div class="progress-bar"><div class="progress-fill" id="quizProgress"></div></div>
-                <span id="quizProgressText">Q 1 / 10</span>
-            </div>
-            <div id="quizQuestion" class="question-box"></div>
-            <div id="quizOptions" class="options-grid"></div>
-            <div id="quizFeedback" class="feedback"></div>
-            <button onclick="nextQuizQuestion()" class="btn" id="nextQuizBtn" style="display:none;">Next ➡️</button>
-            <div class="score-bar">
-                <span>✅ <strong id="quizCorrect">0</strong></span>
-                <span>❌ <strong id="quizWrong">0</strong></span>
-                <span>📊 <strong id="quizPercent">0%</strong></span>
-            </div>
+        <div id="quizBox" class="quiz-box" style="display:none;">
+            <div class="q-progress"><div class="pbar"><div class="pfill" id="qProg"></div></div><span id="qProgTxt"></span></div>
+            <div id="qText" class="q-text"></div>
+            <div class="q-type-badge" id="qTypeBadge"></div>
+            <div id="qOpts" class="q-opts"></div>
+            <div id="qFeedback" class="q-feedback"></div>
+            <div id="qExplanation" class="q-explanation"></div>
+            <button onclick="nextQ()" class="btn" id="nextQBtn" style="display:none;">Next ➡️</button>
+            <div class="q-score"><span>✅ <b id="qC">0</b></span><span>❌ <b id="qW">0</b></span><span>📊 <b id="qP">0%</b></span></div>
         </div>
-
-        <div id="quizResults" class="results-box" style="display:none;">
+        <div id="quizResult" class="result-box" style="display:none;">
             <h2>🎉 Quiz Complete!</h2>
-            <div class="result-circle" id="resultCircle"><span id="resultPercent">0%</span></div>
-            <p id="resultMessage"></p>
-            <div class="result-stats">
-                <span>✅ <strong id="finalCorrect">0</strong></span>
-                <span>❌ <strong id="finalWrong">0</strong></span>
-                <span>📝 <strong id="finalTotal">0</strong></span>
-            </div>
-            <div class="result-actions">
-                <button class="btn" onclick="loadQuizForBook(document.getElementById('quizBookSelect').value)">🔄 Retake</button>
-                <button class="btn btn-secondary" onclick="showSection('library')">📚 Library</button>
+            <div class="result-ring" id="resRing"><span id="resPct">0%</span></div>
+            <p id="resMsg"></p>
+            <div class="res-stats"><span>✅ <b id="resC">0</b></span><span>❌ <b id="resW">0</b></span><span>📝 <b id="resT">0</b></span></div>
+            <div class="res-acts">
+                <button class="btn" onclick="loadQuiz(document.getElementById('quizBookSel').value)">🔄 Retry</button>
+                <button class="btn btn-sec" onclick="showSection('library')">📚 Library</button>
             </div>
         </div>
     </section>
 
-    <!-- ==================== FLASHCARDS ==================== -->
+    <!-- ===== FLASHCARDS ===== -->
     <section id="flashcards" class="section">
-        <div class="section-header">
-            <h2>🔤 Flashcards</h2>
-            <select id="flashcardBookSelect" class="select-input" onchange="loadFlashcardsForBook(this.value)">
-                <option value="">-- Select a Book --</option>
+        <div class="sec-head">
+            <h2>🔤 Smart Flashcards</h2>
+            <select id="fcBookSel" class="sel-input" onchange="loadFC(this.value)">
+                <option value="">-- Pick a Book --</option>
             </select>
         </div>
-
-        <div id="flashcardArea">
-            <div class="empty-state">
-                <span>🔤</span>
-                <h3>Select a book for flashcards</h3>
-                <p>Key terms will be extracted automatically!</p>
-            </div>
+        <div id="fcArea">
+            <div class="empty-state"><span>🔤</span><h3>Select a book</h3><p>Key concepts extracted automatically!</p></div>
         </div>
-
-        <div id="flashcardContainer" style="display:none;">
-            <div class="fc-wrapper">
+        <div id="fcBox" style="display:none;">
+            <div class="fc-wrap">
                 <div class="fc-card" id="fcCard" onclick="flipFC()">
-                    <div class="fc-front" id="fcFront">Front</div>
-                    <div class="fc-back" id="fcBack">Back</div>
+                    <div class="fc-f" id="fcF">Front</div>
+                    <div class="fc-b" id="fcB">Back</div>
                 </div>
             </div>
-            <p class="hint-text">👆 Click to flip!</p>
+            <p class="fc-hint">👆 Tap to flip!</p>
+            <div class="fc-category" id="fcCategory"></div>
             <div class="fc-nav">
-                <button onclick="prevFC()" class="btn">⬅️ Prev</button>
-                <span id="fcCount">1 / 10</span>
-                <button onclick="nextFC()" class="btn">Next ➡️</button>
+                <button onclick="prevFC()" class="btn">⬅️</button>
+                <span id="fcCt">1/10</span>
+                <button onclick="nextFC()" class="btn">➡️</button>
+            </div>
+            <div class="fc-progress"><div class="pbar"><div class="pfill" id="fcProg"></div></div></div>
+        </div>
+    </section>
+
+    <!-- ===== TAMIL ===== -->
+    <section id="tamil" class="section">
+        <h2>🟢 தமிழ் பகுதி (Tamil Section)</h2>
+
+        <div class="sub-box">
+            <h3>📌 எழுத்துகள் (Letters)</h3>
+            <div class="grid-cards">
+                <div class="info-card">
+                    <h4>உயிர் எழுத்துகள் (Vowels) - 12</h4>
+                    <p class="tamil-letters">அ ஆ இ ஈ உ ஊ எ ஏ ஐ ஒ ஓ ஔ</p>
+                </div>
+                <div class="info-card">
+                    <h4>மெய் எழுத்துகள் (Consonants) - 18</h4>
+                    <p class="tamil-letters">க் ங் ச் ஞ் ட் ண் த் ந் ப் ம் ய் ர் ல் வ் ழ் ள் ற் ன்</p>
+                </div>
+                <div class="info-card">
+                    <h4>உயிர்மெய் எழுத்துகள் - 216</h4>
+                    <p>உயிர் + மெய் = உயிர்மெய்</p>
+                    <p>Example: க + அ = க, க + ஆ = கா, க + இ = கி</p>
+                </div>
+                <div class="info-card">
+                    <h4>ஆய்த எழுத்து - 1</h4>
+                    <p class="tamil-letters" style="font-size:2rem;">ஃ</p>
+                    <p>Total: 12 + 18 + 216 + 1 = <strong>247 எழுத்துகள்</strong></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-box">
+            <h3>📖 இலக்கணம் (Grammar)</h3>
+            <div class="grid-cards">
+                <div class="info-card">
+                    <h4>பெயர்ச்சொல் (Noun)</h4>
+                    <p><b>பொருட்பெயர்:</b> மரம், புத்தகம்</p>
+                    <p><b>இடப்பெயர்:</b> சென்னை, பள்ளி</p>
+                    <p><b>காலப்பெயர்:</b> காலை, மாலை</p>
+                    <p><b>சினைப்பெயர்:</b> கை, கால்</p>
+                    <p><b>பண்புப்பெயர்:</b> நல்ல, சிவப்பு</p>
+                </div>
+                <div class="info-card">
+                    <h4>வினைச்சொல் (Verb)</h4>
+                    <p><b>தெரிநிலை வினை:</b> படித்தான் (read)</p>
+                    <p><b>குறிப்பு வினை:</b> கரியன் (dark one)</p>
+                    <p><b>Example:</b></p>
+                    <p>நடக்கிறான் = He walks</p>
+                    <p>நடந்தான் = He walked</p>
+                    <p>நடப்பான் = He will walk</p>
+                </div>
+                <div class="info-card">
+                    <h4>காலம் (Tense)</h4>
+                    <p><b>இறந்தகாலம்:</b> சென்றான் (Past)</p>
+                    <p><b>நிகழ்காலம்:</b> செல்கிறான் (Present)</p>
+                    <p><b>எதிர்காலம்:</b> செல்வான் (Future)</p>
+                </div>
+                <div class="info-card">
+                    <h4>வேற்றுமை (Case)</h4>
+                    <p><b>1st:</b> எழுவாய் (Subject)</p>
+                    <p><b>2nd:</b> ஐ - செய்தொகை</p>
+                    <p><b>3rd:</b> ஆல், ஓடு - கருவி</p>
+                    <p><b>4th:</b> கு - கொடை</p>
+                    <p><b>5th:</b> இன் - நீங்கல்</p>
+                    <p><b>6th:</b> அது - உடைமை</p>
+                    <p><b>7th:</b> கண் - இடம்</p>
+                    <p><b>8th:</b> விளி (Calling)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="sub-box">
+            <h3>🔤 சொல் பயிற்சி (Vocabulary)</h3>
+            <div class="fc-wrap">
+                <div class="fc-card" id="tamilFC" onclick="flipTamilFC()">
+                    <div class="fc-f tamil-fc-f" id="tamilFCF">தமிழ்</div>
+                    <div class="fc-b tamil-fc-b" id="tamilFCB">Tamil</div>
+                </div>
+            </div>
+            <p class="fc-hint">👆 Tap to see meaning!</p>
+            <div class="fc-nav">
+                <button onclick="prevTamilFC()" class="btn">⬅️</button>
+                <span id="tamilFCCt">1/15</span>
+                <button onclick="nextTamilFC()" class="btn">➡️</button>
+            </div>
+        </div>
+
+        <div class="sub-box">
+            <h3>📝 தமிழ் வினாடி வினா (Tamil Quiz)</h3>
+            <div class="quiz-box">
+                <div id="tamilQText" class="q-text"></div>
+                <div id="tamilQOpts" class="q-opts"></div>
+                <div id="tamilQFb" class="q-feedback"></div>
+                <button onclick="loadTamilQuiz()" class="btn">அடுத்த கேள்வி ➡️</button>
+                <div class="q-score"><span>✅ <b id="tqC">0</b></span><span>❌ <b id="tqW">0</b></span></div>
+            </div>
+        </div>
+
+        <div class="sub-box">
+            <h3>📚 பழமொழிகள் (Proverbs)</h3>
+            <div class="grid-cards">
+                <div class="info-card proverb-card">
+                    <p class="proverb">ஆத்திசூடி முதல்வன் முதலா</p>
+                    <p class="proverb-meaning">God is the first and foremost</p>
+                </div>
+                <div class="info-card proverb-card">
+                    <p class="proverb">கற்றது கைமண் அளவு, கல்லாதது உலகளவு</p>
+                    <p class="proverb-meaning">What you know is a handful, what you don't is the world</p>
+                </div>
+                <div class="info-card proverb-card">
+                    <p class="proverb">அறிவே ஆற்றல்</p>
+                    <p class="proverb-meaning">Knowledge is Power</p>
+                </div>
+                <div class="info-card proverb-card">
+                    <p class="proverb">கல்வி கரையில கற்பவர் நாள் சில</p>
+                    <p class="proverb-meaning">Knowledge is endless, but life is short</p>
+                </div>
+                <div class="info-card proverb-card">
+                    <p class="proverb">விதை நன்றாக இருந்தால் விளைச்சல் நன்றாக இருக்கும்</p>
+                    <p class="proverb-meaning">Good seeds yield a good harvest</p>
+                </div>
+                <div class="info-card proverb-card">
+                    <p class="proverb">உழைப்பே உயர்வு</p>
+                    <p class="proverb-meaning">Hard work leads to greatness</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- ==================== NOTES ==================== -->
+    <!-- ===== NOTES ===== -->
     <section id="notes" class="section">
-        <div class="section-header">
+        <div class="sec-head">
             <h2>📝 My Notes</h2>
-            <button class="btn" onclick="openNoteEditor()">➕ New Note</button>
+            <button class="btn" onclick="openNoteEd()">➕ New</button>
         </div>
-
-        <div id="noteEditor" class="note-editor" style="display:none;">
-            <input type="text" id="noteTitle" class="note-title-input" placeholder="Note title...">
-            <select id="noteSubject" class="select-input" style="width:100%;margin-bottom:12px;">
+        <div id="noteEd" class="note-ed" style="display:none;">
+            <input type="text" id="nTitle" class="n-title" placeholder="Note title...">
+            <select id="nSubject" class="sel-input" style="width:100%;margin-bottom:10px;">
                 <option value="general">📌 General</option>
                 <option value="math">📐 Math</option>
                 <option value="english">📖 English</option>
                 <option value="hindi">📝 Hindi</option>
+                <option value="tamil">🟢 Tamil</option>
                 <option value="science">🔬 Science</option>
-                <option value="social">🌍 Social</option>
-                <option value="computer">💻 Computer</option>
             </select>
-            <textarea id="noteContent" class="note-content-input" placeholder="Write your notes..."></textarea>
-            <div class="note-actions">
+            <textarea id="nContent" class="n-content" placeholder="Write notes..."></textarea>
+            <div class="n-acts">
                 <button class="btn" onclick="saveNote()">💾 Save</button>
-                <button class="btn btn-secondary" onclick="closeNoteEditor()">Cancel</button>
+                <button class="btn btn-sec" onclick="closeNoteEd()">Cancel</button>
             </div>
         </div>
-
         <div id="notesList" class="notes-grid"></div>
     </section>
 
-    <!-- ==================== TIMER ==================== -->
+    <!-- ===== TIMER ===== -->
     <section id="timer" class="section">
         <h2>⏱️ Study Timer</h2>
-        <div class="timer-wrapper">
+        <div class="timer-wrap">
             <div class="timer-circle">
-                <svg width="240" height="240">
-                    <circle cx="120" cy="120" r="105" class="ring-bg"/>
-                    <circle cx="120" cy="120" r="105" class="ring-fg" id="timerRing"/>
-                </svg>
-                <div class="timer-text" id="timerDisplay">25:00</div>
+                <svg width="220" height="220"><circle cx="110" cy="110" r="100" class="ring-bg"/><circle cx="110" cy="110" r="100" class="ring-fg" id="timerRing"/></svg>
+                <div class="timer-num" id="timerDisplay">25:00</div>
             </div>
             <div class="timer-btns">
-                <button onclick="startTimer()" class="btn btn-start">▶️ Start</button>
-                <button onclick="pauseTimer()" class="btn btn-pause">⏸️ Pause</button>
-                <button onclick="resetTimer()" class="btn btn-reset">🔄 Reset</button>
+                <button onclick="startTimer()" class="btn btn-ok">▶️</button>
+                <button onclick="pauseTimer()" class="btn btn-warn">⏸️</button>
+                <button onclick="resetTimer()" class="btn btn-err">🔄</button>
             </div>
-            <div class="timer-presets">
-                <button onclick="setTimer(25)" class="btn-preset">📖 25m</button>
-                <button onclick="setTimer(5)" class="btn-preset">☕ 5m</button>
-                <button onclick="setTimer(15)" class="btn-preset">🎮 15m</button>
-                <button onclick="setTimer(45)" class="btn-preset">📚 45m</button>
+            <div class="timer-pre">
+                <button onclick="setTimer(25)" class="pre-btn">📖 25m</button>
+                <button onclick="setTimer(5)" class="pre-btn">☕ 5m</button>
+                <button onclick="setTimer(15)" class="pre-btn">🎮 15m</button>
+                <button onclick="setTimer(45)" class="pre-btn">📚 45m</button>
             </div>
         </div>
     </section>
 
-    <!-- ==================== UPLOAD MODAL ==================== -->
-    <div class="modal-overlay" id="uploadModal">
+    <!-- ===== UPLOAD MODAL ===== -->
+    <div class="modal-bg" id="uploadModal">
         <div class="modal">
-            <div class="modal-header">
-                <h3>📤 Upload Book (PDF)</h3>
-                <button class="close-btn" onclick="closeUploadModal()">✕</button>
+            <div class="modal-top">
+                <h3>📤 Upload Book</h3>
+                <button class="x-btn" onclick="closeUploadModal()">✕</button>
             </div>
             <div class="modal-body">
-                <!-- Step 1: Choose File -->
-                <div id="step1" class="upload-step">
-                    <label class="drop-zone" id="dropZone">
-                        <input type="file" id="fileInput" accept=".pdf" onchange="onFileChosen(event)">
-                        <span class="drop-icon">📄</span>
-                        <h3>Drop PDF here or click to browse</h3>
-                        <p>Max recommended: 20MB</p>
-                    </label>
+                <!-- Tutorial Steps -->
+                <div id="tutorialBox" class="tutorial-box">
+                    <h4>📖 How to Upload (Step by Step)</h4>
+                    <div class="tut-steps">
+                        <div class="tut-step">
+                            <span class="tut-num">1</span>
+                            <div>
+                                <strong>Click the box below</strong>
+                                <p>Or drag & drop your PDF file</p>
+                            </div>
+                        </div>
+                        <div class="tut-step">
+                            <span class="tut-num">2</span>
+                            <div>
+                                <strong>Select your PDF book</strong>
+                                <p>From your computer or phone storage</p>
+                            </div>
+                        </div>
+                        <div class="tut-step">
+                            <span class="tut-num">3</span>
+                            <div>
+                                <strong>Fill in the details</strong>
+                                <p>Book name, subject, author</p>
+                            </div>
+                        </div>
+                        <div class="tut-step">
+                            <span class="tut-num">4</span>
+                            <div>
+                                <strong>Click "Upload & Process"</strong>
+                                <p>AI will extract text & generate quizzes!</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tut-tips">
+                        <p>💡 <b>Tip:</b> Use text-based PDFs (like NCERT downloads) for best results!</p>
+                        <p>⚠️ Scanned/photo PDFs won't generate good quizzes</p>
+                        <p>📥 Get NCERT books: <b>ncert.nic.in</b></p>
+                    </div>
+                    <button class="btn btn-glow tut-dismiss" onclick="dismissTutorial()">Got it! Let me upload →</button>
                 </div>
 
-                <!-- Step 2: Book Details -->
-                <div id="step2" class="upload-step" style="display:none;">
+                <!-- Step 1: File picker -->
+                <div id="step1" class="up-step">
+                    <label class="drop-zone" id="dropZone">
+                        <input type="file" id="fileInput" accept=".pdf" onchange="onFileChosen(event)">
+                        <span class="dz-icon">📄</span>
+                        <h3>Drop PDF here or click to browse</h3>
+                        <p>Supports: .pdf (max 50MB)</p>
+                    </label>
+                    <button class="btn btn-sec tut-show-btn" onclick="showTutorial()">❓ How to upload?</button>
+                </div>
+
+                <!-- Step 2: Details -->
+                <div id="step2" class="up-step" style="display:none;">
                     <div class="file-info">
                         <span>📄</span>
-                        <div>
-                            <strong id="fileName"></strong>
-                            <small id="fileSize"></small>
-                        </div>
+                        <div><strong id="fName"></strong><small id="fSize"></small></div>
                         <button class="btn-sm btn-change" onclick="changeFile()">Change</button>
                     </div>
-
-                    <label class="form-label">Book Title *</label>
-                    <input type="text" id="bookTitle" class="form-input" placeholder="e.g. Mathematics NCERT">
-
-                    <label class="form-label">Subject *</label>
-                    <select id="bookSubject" class="form-input">
+                    <label class="flabel">Book Title *</label>
+                    <input type="text" id="bTitle" class="finput" placeholder="e.g. Mathematics NCERT">
+                    <label class="flabel">Subject *</label>
+                    <select id="bSubject" class="finput">
                         <option value="">-- Select --</option>
                         <option value="math">📐 Mathematics</option>
                         <option value="english">📖 English</option>
                         <option value="hindi">📝 Hindi</option>
+                        <option value="tamil">🟢 Tamil</option>
                         <option value="science">🔬 Science</option>
                         <option value="social">🌍 Social Science</option>
                         <option value="computer">💻 Computer Science</option>
                         <option value="other">📦 Other</option>
                     </select>
-
-                    <label class="form-label">Author (optional)</label>
-                    <input type="text" id="bookAuthor" class="form-input" placeholder="e.g. NCERT">
-
-                    <!-- Progress -->
-                    <div id="uploadProgress" class="upload-progress" style="display:none;">
-                        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-                        <p id="progressStatus">Starting...</p>
+                    <label class="flabel">Author (optional)</label>
+                    <input type="text" id="bAuthor" class="finput" placeholder="e.g. NCERT">
+                    <div id="upProg" class="up-prog" style="display:none;">
+                        <div class="pbar"><div class="pfill" id="upFill"></div></div>
+                        <p id="upStatus">Starting...</p>
                     </div>
-
-                    <div class="modal-actions">
-                        <button class="btn btn-upload-go" id="uploadGoBtn" onclick="startProcessing()">
-                            📤 Upload & Process
-                        </button>
-                    </div>
+                    <button class="btn btn-glow full-btn" id="upGoBtn" onclick="startProcessing()">📤 Upload & Process</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ==================== FAB ==================== -->
-    <button class="fab" onclick="openUploadModal()" title="Upload a book">📤</button>
+    <!-- FAB -->
+    <button class="fab" onclick="openUploadModal()" title="Upload book">📤</button>
 
-    <!-- FOOTER -->
-    <footer>
-        <p>Made with ❤️ by Samuel Giftson S | Grade VIII | St Christopher Academy</p>
-    </footer>
+    <footer><p>Made with ❤️ by Samuel Giftson S | Grade VIII | St Christopher Academy</p></footer>
 
     <script src="script.js"></script>
 </body>
