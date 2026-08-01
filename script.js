@@ -181,6 +181,9 @@ async function processUpload() {
             reader.readAsArrayBuffer(currentFile);
         });
 
+        // ★ FIX: Copy the ArrayBuffer BEFORE pdf.js consumes it
+        var arrayBufferCopy = arrayBuffer.slice(0);
+
         // Load PDF
         statusText.textContent = 'Loading PDF...';
         fillBar.style.width = '15%';
@@ -205,11 +208,11 @@ async function processUpload() {
             statusText.textContent = 'Extracting page ' + i + ' / ' + totalPages + '...';
         }
 
-        // Save PDF binary
+        // Save PDF binary using the COPY (not the original)
         statusText.textContent = 'Saving...';
         fillBar.style.width = '85%';
         var pdfId = 'pdf_' + Date.now();
-        await dbSave('pdfs', { id: pdfId, data: arrayBuffer });
+        await dbSave('pdfs', { id: pdfId, data: arrayBufferCopy });
 
         // Save book record
         var book = {
@@ -242,7 +245,6 @@ async function processUpload() {
     btn.disabled = false;
     btn.textContent = '📤 Upload & Process';
 }
-
 // ---- LIBRARY ----
 function renderLibrary() {
     var grid = document.getElementById('libContent');
