@@ -1,8 +1,3 @@
-// =============================================
-//  STUDYBUDDY — CLEAN WORKING VERSION
-//  By Samuel Giftson S
-// =============================================
-
 pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -116,6 +111,46 @@ function subjectColor(s) {
     return map[s] || '#64748b,#94a3b8';
 }
 
+// ---- NAME GREETING ----
+function saveName() {
+    var n = document.getElementById('nameInput').value.trim();
+    if (!n) {
+        toast('Enter your name!', 'warn');
+        return;
+    }
+    localStorage.setItem('sbName', n);
+    document.getElementById('namePopup').classList.add('hidden');
+    updateGreeting();
+    toast('Welcome, ' + n + '! 🎉', 'ok');
+}
+
+function updateGreeting() {
+    var n = localStorage.getItem('sbName');
+    if (!n) return;
+
+    var h = new Date().getHours();
+    var g, m;
+
+    if (h >= 5 && h < 12) {
+        g = '🌅 Good Morning, ' + n + '!';
+        m = 'Great time to study! 💪';
+    } else if (h >= 12 && h < 17) {
+        g = '☀️ Good Afternoon, ' + n + '!';
+        m = 'Keep going! 🚀';
+    } else if (h >= 17 && h < 21) {
+        g = '🌇 Good Evening, ' + n + '!';
+        m = 'Revision time! 📝';
+    } else {
+        g = '🌙 Good Night, ' + n + '!';
+        m = 'Quick revision before bed! 🧠';
+    }
+
+    var a = document.getElementById('heroGreeting');
+    var b = document.getElementById('heroMessage');
+    if (a) a.textContent = g;
+    if (b) b.textContent = m;
+}
+
 // ---- UPLOAD ----
 function openUploadDialog() {
     document.getElementById('uploadOverlay').classList.add('show');
@@ -170,7 +205,6 @@ async function processUpload() {
     var statusText = document.getElementById('uploadStatusText');
 
     try {
-        // Read file
         statusText.textContent = 'Reading file...';
         fillBar.style.width = '5%';
 
@@ -181,16 +215,13 @@ async function processUpload() {
             reader.readAsArrayBuffer(currentFile);
         });
 
-        // ★ FIX: Copy the ArrayBuffer BEFORE pdf.js consumes it
         var arrayBufferCopy = arrayBuffer.slice(0);
 
-        // Load PDF
         statusText.textContent = 'Loading PDF...';
         fillBar.style.width = '15%';
         var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         var totalPages = pdf.numPages;
 
-        // Extract text
         var pageTexts = [];
         var fullText = '';
         for (var i = 1; i <= totalPages; i++) {
@@ -208,13 +239,11 @@ async function processUpload() {
             statusText.textContent = 'Extracting page ' + i + ' / ' + totalPages + '...';
         }
 
-        // Save PDF binary using the COPY (not the original)
         statusText.textContent = 'Saving...';
         fillBar.style.width = '85%';
         var pdfId = 'pdf_' + Date.now();
         await dbSave('pdfs', { id: pdfId, data: arrayBufferCopy });
 
-        // Save book record
         var book = {
             id: 'book_' + Date.now(),
             title: title,
@@ -245,6 +274,7 @@ async function processUpload() {
     btn.disabled = false;
     btn.textContent = '📤 Upload & Process';
 }
+
 // ---- LIBRARY ----
 function renderLibrary() {
     var grid = document.getElementById('libContent');
@@ -305,8 +335,6 @@ async function openReader(bookId) {
         var pdfData = await dbGet('pdfs', book.pdfId);
         if (pdfData && pdfData.data) {
             readerPdfDoc = await pdfjsLib.getDocument({ data: pdfData.data }).promise;
-
-            // Fill page selector
             var sel = document.getElementById('readerPageSelect');
             sel.innerHTML = '';
             for (var i = 0; i < readerPdfDoc.numPages; i++) {
@@ -330,7 +358,6 @@ async function renderReaderPage() {
     if (!readerPdfDoc) { showReaderText(); return; }
     var display = document.getElementById('readerDisplay');
     display.innerHTML = '';
-
     try {
         var page = await readerPdfDoc.getPage(readerCurrentPage + 1);
         var viewport = page.getViewport({ scale: readerZoomLevel });
@@ -344,7 +371,6 @@ async function renderReaderPage() {
     } catch (e) {
         showReaderText();
     }
-
     document.getElementById('readerPageNum').textContent = (readerCurrentPage + 1) + ' / ' + readerCurrentBook.pages;
     document.getElementById('readerPageSelect').value = readerCurrentPage;
 }
@@ -434,22 +460,21 @@ function quizStart() {
 
     if (from >= to) { toast('Invalid page range!', 'warn'); return; }
 
-    // Get text for selected pages
     var chapterText = book.pageTexts.slice(from, to).join(' ').replace(/\s+/g, ' ').trim();
-    if (chapterText.length < 80) { toast('Not enough text in those pages. Try wider range.', 'warn'); return; }
+    if (chapterText.length < 80) { toast('Not enough text in those pages.', 'warn'); return; }
 
     quizQuestions = generateQuestions(chapterText, numQ);
     quizIndex = 0;
     quizCorrect = 0;
     quizWrong = 0;
 
-    if (quizQuestions.length === 0) { toast('Could not generate questions. Try different pages.', 'warn'); return; }
+    if (quizQuestions.length === 0) { toast('Could not generate questions.', 'warn'); return; }
 
     document.getElementById('quizSetupBox').style.display = 'none';
     document.getElementById('quizPlayBox').style.display = 'block';
     document.getElementById('quizResultBox').style.display = 'none';
     showQuizQuestion();
-    toast(quizQuestions.length + ' questions from pages ' + (from+1) + '-' + to + '!', 'ok');
+    toast(quizQuestions.length + ' questions ready!', 'ok');
 }
 
 function generateQuestions(text, count) {
@@ -457,7 +482,6 @@ function generateQuestions(text, count) {
     var sentences = text.split(/[.!?।\n]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 20 && s.length < 250; });
     if (sentences.length < 3) return [];
 
-    // Get keywords
     var stopWords = 'the and for that this with from have been were they their which about would could should these those also into some than then only very more most such each because between through during without another does will just over under both same many much while since until upon here still even well back down like make made know take come give look find want tell good great first last long little around every never might shall a an is are was in on to of it'.split(' ');
     var freq = {};
     text.split(/\s+/).forEach(function(w) {
@@ -474,47 +498,31 @@ function generateQuestions(text, count) {
 
     var used = {};
 
-    // Fill in blank questions
     for (var si = 0; si < sentences.length && results.length < Math.ceil(count * 0.5); si++) {
         var sent = sentences[si];
         if (used[sent]) continue;
         var words = sent.split(/\s+/);
         if (words.length < 5) continue;
-
         var bestWord = null;
         var bestIndex = -1;
         for (var wi = 1; wi < words.length - 1; wi++) {
             var clean = words[wi].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
-            if (keywords.indexOf(clean) !== -1 && clean.length > 4) {
-                bestWord = words[wi];
-                bestIndex = wi;
-                break;
-            }
+            if (keywords.indexOf(clean) !== -1 && clean.length > 4) { bestWord = words[wi]; bestIndex = wi; break; }
         }
         if (!bestWord) continue;
         used[sent] = true;
-
         var blanked = words.map(function(w, idx) { return idx === bestIndex ? '________' : w; }).join(' ');
         var correctAnswer = bestWord.replace(/[^a-zA-Z\u0900-\u097F\s]/g, '');
         var wrongAnswers = keywords.filter(function(k) { return k !== correctAnswer.toLowerCase(); }).sort(function() { return Math.random() - 0.5; }).slice(0, 3);
         if (wrongAnswers.length < 3) continue;
-
         var options = [correctAnswer].concat(wrongAnswers).sort(function() { return Math.random() - 0.5; });
-        results.push({
-            question: 'Fill in the blank:\n\n"' + blanked + '"',
-            options: options,
-            answer: options.indexOf(correctAnswer),
-            type: 'Fill in Blank',
-            explanation: 'Answer: ' + correctAnswer + '\n"' + sent + '"'
-        });
+        results.push({ question: 'Fill in the blank:\n\n"' + blanked + '"', options: options, answer: options.indexOf(correctAnswer), type: 'Fill in Blank', explanation: 'Answer: ' + correctAnswer });
     }
 
-    // True/False questions
     for (var ti = 0; ti < sentences.length && results.length < Math.ceil(count * 0.8); ti++) {
         var tfSent = sentences[ti];
         if (used[tfSent] || tfSent.length > 160 || Math.random() > 0.5) continue;
         used[tfSent] = true;
-
         var isTrue = Math.random() > 0.4;
         var displaySent = tfSent;
         if (!isTrue) {
@@ -528,33 +536,19 @@ function generateQuestions(text, count) {
             }
             displaySent = tfWords.join(' ');
         }
-        results.push({
-            question: 'True or False?\n\n"' + displaySent + '"',
-            options: ['True ✅', 'False ❌'],
-            answer: isTrue ? 0 : 1,
-            type: 'True/False',
-            explanation: isTrue ? 'Correct as stated.' : 'Original: "' + tfSent + '"'
-        });
+        results.push({ question: 'True or False?\n\n"' + displaySent + '"', options: ['True ✅', 'False ❌'], answer: isTrue ? 0 : 1, type: 'True/False', explanation: isTrue ? 'Correct!' : 'Original: "' + tfSent + '"' });
     }
 
-    // Comprehension
     for (var ci = 0; ci < 5 && results.length < count; ci++) {
         var compSent = sentences[Math.floor(Math.random() * sentences.length)];
         if (used[compSent] || compSent.length > 120) continue;
         used[compSent] = true;
         var preview = compSent.length > 70 ? compSent.substring(0, 70) + '...' : compSent;
-        var wrongOpts = ['Not mentioned in the text', 'Belongs to another chapter', 'The book doesn\'t discuss this'];
+        var wrongOpts = ['Not mentioned in text', 'From another chapter', 'Book doesn\'t discuss this'];
         var compOpts = [preview].concat(wrongOpts).sort(function() { return Math.random() - 0.5; });
-        results.push({
-            question: 'Which is from your book?',
-            options: compOpts,
-            answer: compOpts.indexOf(preview),
-            type: 'Comprehension',
-            explanation: 'Found: "' + compSent + '"'
-        });
+        results.push({ question: 'Which is from your book?', options: compOpts, answer: compOpts.indexOf(preview), type: 'Comprehension', explanation: 'Found: "' + compSent + '"' });
     }
 
-    // Shuffle and limit
     results.sort(function() { return Math.random() - 0.5; });
     return results.slice(0, count);
 }
@@ -571,7 +565,6 @@ function showQuizQuestion() {
     expEl.textContent = '';
     expEl.classList.remove('visible');
     document.getElementById('quizNextBtn').style.display = 'none';
-
     var optDiv = document.getElementById('quizOptionsArea');
     optDiv.innerHTML = '';
     q.options.forEach(function(opt, idx) {
@@ -586,7 +579,6 @@ function showQuizQuestion() {
 function pickQuizAnswer(picked, correct, clickedBtn, explanation) {
     var buttons = document.getElementById('quizOptionsArea').querySelectorAll('button');
     buttons.forEach(function(b) { b.onclick = null; b.classList.add('locked'); });
-
     var fb = document.getElementById('quizFeedback');
     if (picked === correct) {
         quizCorrect++;
@@ -600,7 +592,6 @@ function pickQuizAnswer(picked, correct, clickedBtn, explanation) {
         fb.textContent = '❌ Wrong!';
         fb.style.color = 'var(--e)';
     }
-
     if (explanation) {
         var expEl = document.getElementById('quizExplain');
         expEl.textContent = '💡 ' + explanation;
@@ -661,7 +652,6 @@ function fcLoadBook(bookId) {
         document.getElementById('fcCardArea').style.display = 'none';
         return;
     }
-
     fcCards = [];
     var sents = book.fullText.split(/[.!?।\n]+/).filter(function(s) { return s.trim().length > 15 && s.trim().length < 200; });
     var freq = {};
@@ -673,7 +663,6 @@ function fcLoadBook(bookId) {
     for (var w in freq) { if (freq[w] >= 2 && freq[w] <= 15) kws.push(w); }
     kws.sort(function(a, b) { return (freq[b] || 0) - (freq[a] || 0); });
     kws = kws.slice(0, 25);
-
     var usedKW = {};
     sents.forEach(function(s) {
         if (fcCards.length >= 20) return;
@@ -688,13 +677,11 @@ function fcLoadBook(bookId) {
             }
         }
     });
-
     if (fcCards.length === 0) {
         document.getElementById('fcContent').innerHTML = '<p class="placeholder">⚠️ Cannot generate flashcards</p>';
         document.getElementById('fcCardArea').style.display = 'none';
         return;
     }
-
     fcIndex = 0;
     document.getElementById('fcContent').innerHTML = '';
     document.getElementById('fcCardArea').style.display = 'block';
@@ -792,7 +779,7 @@ function aiSelectBook(bookId) {
     aiSelectedBookId = bookId;
     if (bookId) {
         var book = allBooks.find(function(b) { return b.id === bookId; });
-        if (book) addChatMessage('bot', '📘 Loaded "' + book.title + '" (' + book.pages + ' pages). Ask me anything!');
+        if (book) addChatMessage('bot', '📘 Loaded "' + book.title + '". Ask me anything!');
     }
 }
 
@@ -811,7 +798,6 @@ function aiSendMessage() {
     var book = allBooks.find(function(b) { return b.id === aiSelectedBookId; });
     if (!book) { addChatMessage('bot', '❌ Book not found!'); return; }
 
-    // Search the book
     var queryWords = query.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 2; });
     var sentences = book.fullText.split(/[.!?।\n]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 15; });
 
@@ -823,38 +809,24 @@ function aiSendMessage() {
     }).filter(function(x) { return x.score > 0; }).sort(function(a, b) { return b.score - a.score; });
 
     if (scored.length > 0) {
-        var response = '📖 Found in your book:<br><br>';
+        var response = '📖 Found in your book:\n\n';
         scored.slice(0, 3).forEach(function(item, i) {
             var display = item.text.length > 200 ? item.text.substring(0, 200) + '...' : item.text;
-            response += '<div class="foundtext"><b>Match ' + (i+1) + ':</b><br>' + display + '</div>';
+            response += '📌 Match ' + (i+1) + ': ' + display + '\n\n';
         });
-        addChatMessage('bot', response, true);
+        addChatMessage('bot', response);
     } else {
-        // Handle special queries
-        var q = query.toLowerCase();
-        if (q.indexOf('page') !== -1) {
-            var pageMatch = q.match(/page\s*(\d+)/);
-            if (pageMatch) {
-                var pg = parseInt(pageMatch[1]) - 1;
-                if (pg >= 0 && pg < book.pageTexts.length) {
-                    var pageText = book.pageTexts[pg] || 'No readable text.';
-                    var preview = pageText.length > 300 ? pageText.substring(0, 300) + '...' : pageText;
-                    addChatMessage('bot', '📄 Page ' + (pg+1) + ':<br><div class="foundtext">' + preview + '</div>', true);
-                    return;
-                }
-            }
-        }
-        addChatMessage('bot', '🤔 Couldn\'t find "' + query + '" in your book. Try different keywords or ask about a specific page!');
+        addChatMessage('bot', '🤔 Could not find "' + query + '" in your book. Try different keywords!');
     }
 }
 
-function addChatMessage(who, message, isHTML) {
+function addChatMessage(who, message) {
     var chatArea = document.getElementById('chatArea');
     var div = document.createElement('div');
     div.className = 'chatmsg ' + who;
     var avatar = who === 'bot' ? '🤖' : '👤';
-    var content = isHTML ? message : message.replace(/</g, '&lt;').replace(/\n/g, '<br>');
-    div.innerHTML = '<div class="chatavatar">' + avatar + '</div><div class="chatbubble">' + content + '</div>';
+    var escaped = message.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+    div.innerHTML = '<div class="chatavatar">' + avatar + '</div><div class="chatbubble">' + escaped + '</div>';
     chatArea.appendChild(div);
     chatArea.scrollTop = chatArea.scrollHeight;
 }
@@ -867,7 +839,6 @@ function noteStartNew() {
     document.getElementById('noteEditArea').style.display = 'block';
     document.getElementById('noteEditTitle').value = '';
     document.getElementById('noteEditBody').value = '';
-    document.getElementById('noteEditTitle').focus();
 }
 
 function noteCancel() {
@@ -878,35 +849,23 @@ async function noteSave() {
     var title = document.getElementById('noteEditTitle').value.trim();
     var body = document.getElementById('noteEditBody').value.trim();
     if (!title || !body) { toast('Enter title and content!', 'warn'); return; }
-
     if (editingNoteId) {
         var existing = allNotes.find(function(n) { return n.id === editingNoteId; });
-        if (existing) {
-            existing.title = title;
-            existing.body = body;
-            existing.modified = new Date().toLocaleDateString();
-            await dbSave('notes', existing);
-        }
+        if (existing) { existing.title = title; existing.body = body; await dbSave('notes', existing); }
     } else {
-        var note = {
-            id: 'note_' + Date.now(),
-            title: title,
-            body: body,
-            date: new Date().toLocaleDateString(),
-            modified: new Date().toLocaleDateString()
-        };
+        var note = { id: 'note_' + Date.now(), title: title, body: body, date: new Date().toLocaleDateString() };
         allNotes.push(note);
         await dbSave('notes', note);
     }
     noteCancel();
     renderNotes();
-    toast('Note saved!', 'ok');
+    toast('Saved!', 'ok');
 }
 
 function renderNotes() {
     var container = document.getElementById('noteListArea');
     if (allNotes.length === 0) {
-        container.innerHTML = '<p class="placeholder">📝 No notes yet. Click "+ New" to start!</p>';
+        container.innerHTML = '<p class="placeholder">📝 No notes yet</p>';
         return;
     }
     var html = '';
@@ -915,8 +874,7 @@ function renderNotes() {
         html += '<div class="notecard" onclick="noteEdit(\'' + n.id + '\')">' +
             '<button class="notedel" onclick="event.stopPropagation();noteDelete(\'' + n.id + '\')">✕</button>' +
             '<h4>' + n.title + '</h4>' +
-            '<p>' + n.body.substring(0, 80) + (n.body.length > 80 ? '...' : '') + '</p>' +
-            '<p class="small">📅 ' + (n.modified || n.date) + '</p></div>';
+            '<p>' + n.body.substring(0, 80) + '</p></div>';
     }
     container.innerHTML = html;
 }
@@ -931,11 +889,10 @@ function noteEdit(id) {
 }
 
 async function noteDelete(id) {
-    if (!confirm('Delete this note?')) return;
+    if (!confirm('Delete?')) return;
     await dbRemove('notes', id);
     allNotes = allNotes.filter(function(n) { return n.id !== id; });
     renderNotes();
-    toast('Deleted!', 'info');
 }
 
 // ---- TIMER ----
@@ -952,44 +909,25 @@ function timerUpdateDisplay() {
 function timerStart() {
     if (timerInterval) return;
     timerInterval = setInterval(function() {
-        if (timerSecondsLeft <= 0) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            toast('⏰ Time is up!', 'ok');
-            return;
-        }
+        if (timerSecondsLeft <= 0) { clearInterval(timerInterval); timerInterval = null; toast('⏰ Time up!', 'ok'); return; }
         timerSecondsLeft--;
         timerUpdateDisplay();
     }, 1000);
 }
 
-function timerPause() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-}
+function timerPause() { clearInterval(timerInterval); timerInterval = null; }
 
-function timerReset() {
-    timerPause();
-    timerSecondsLeft = timerTotalSeconds;
-    timerUpdateDisplay();
-}
+function timerReset() { timerPause(); timerSecondsLeft = timerTotalSeconds; timerUpdateDisplay(); }
 
-function timerSetMinutes(mins) {
-    timerPause();
-    timerSecondsLeft = mins * 60;
-    timerTotalSeconds = mins * 60;
-    timerUpdateDisplay();
-}
+function timerSetMinutes(mins) { timerPause(); timerSecondsLeft = mins * 60; timerTotalSeconds = mins * 60; timerUpdateDisplay(); }
 
-// ---- DRAG & DROP ----
+// ---- DRAG DROP ----
 document.addEventListener('DOMContentLoaded', function() {
     var picker = document.getElementById('filePicker');
     if (picker) {
-        picker.addEventListener('dragover', function(e) { e.preventDefault(); picker.style.borderColor = 'var(--a)'; });
-        picker.addEventListener('dragleave', function() { picker.style.borderColor = 'var(--p)'; });
+        picker.addEventListener('dragover', function(e) { e.preventDefault(); });
         picker.addEventListener('drop', function(e) {
             e.preventDefault();
-            picker.style.borderColor = 'var(--p)';
             var file = e.dataTransfer.files[0];
             if (file && file.type === 'application/pdf') {
                 currentFile = file;
@@ -998,9 +936,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('pickedFileName').textContent = file.name;
                 document.getElementById('pickedFileSize').textContent = (file.size / 1048576).toFixed(1) + ' MB';
                 document.getElementById('uploadTitle').value = file.name.replace('.pdf', '').replace(/[_-]+/g, ' ');
-                toast('File dropped!', 'info');
-            } else {
-                toast('Please drop a PDF file!', 'err');
             }
         });
     }
@@ -1009,6 +944,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // ---- INIT ----
 window.onload = async function() {
     console.log('StudyBuddy starting...');
+
+    // Name greeting
+    var savedName = localStorage.getItem('sbName');
+    if (savedName) {
+        var popup = document.getElementById('namePopup');
+        if (popup) popup.classList.add('hidden');
+        updateGreeting();
+    }
 
     // Theme
     if (localStorage.getItem('sbtheme') === 'dark') {
@@ -1024,7 +967,8 @@ window.onload = async function() {
         '"Knowledge is Power — அறிவே ஆற்றல்" 🟢',
         '"The expert was once a beginner."'
     ];
-    document.getElementById('homeQuote').textContent = quotes[new Date().getDate() % quotes.length];
+    var quoteEl = document.getElementById('homeQuote');
+    if (quoteEl) quoteEl.textContent = quotes[new Date().getDate() % quotes.length];
 
     // Timer
     timerUpdateDisplay();
@@ -1039,14 +983,11 @@ window.onload = async function() {
         allBooks = await dbGetAll('books');
         allNotes = await dbGetAll('notes');
         console.log('Loaded ' + allBooks.length + ' books, ' + allNotes.length + ' notes');
-        toast('StudyBuddy ready! ' + allBooks.length + ' books loaded.', 'ok');
+        toast('StudyBuddy ready! ' + allBooks.length + ' books.', 'ok');
     } catch (err) {
-        console.error('Database error:', err);
-        toast('Database error. Try refreshing.', 'err');
+        console.error('DB error:', err);
+        toast('Database error. Refresh page.', 'err');
     }
 
     updateDashboard();
 };
-function saveName(){var n=document.getElementById('nameInput').value.trim();if(!n){toast('Enter your name!','warn');return;}localStorage.setItem('sbName',n);document.getElementById('namePopup').classList.add('hidden');updateGreeting();toast('Welcome, '+n+'! 🎉','ok');}
-function updateGreeting(){var n=localStorage.getItem('sbName');if(!n)return;var h=new Date().getHours();var g,m;if(h>=5&&h<12){g='🌅 Good Morning, '+n+'!';m='Great time to study! 💪';}else if(h>=12&&h<17){g='☀️ Good Afternoon, '+n+'!';m='Keep going! 🚀';}else if(h>=17&&h<21){g='🌇 Good Evening, '+n+'!';m='Revision time! 📝';}else{g='🌙 Good Night, '+n+'!';m='Quick revision before bed! 🧠';}var a=document.getElementById('heroGreeting');var b=document.getElementById('heroMessage');if(a)a.textContent=g;if(b)b.textContent=m;}
-(function(){var n=localStorage.getItem('sbName');if(n){var p=document.getElementById('namePopup');if(p)p.classList.add('hidden');updateGreeting();}})();
