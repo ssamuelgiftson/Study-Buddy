@@ -1047,3 +1047,6 @@ window.onload = async function() {
 
     updateDashboard();
 };
+function saveName(){var n=document.getElementById('nameInput').value.trim();if(!n){toast('Enter your name!','warn');return;}localStorage.setItem('sbName',n);document.getElementById('namePopup').classList.add('hidden');updateGreeting();toast('Welcome, '+n+'! 🎉','ok');}
+function updateGreeting(){var n=localStorage.getItem('sbName');if(!n)return;var h=new Date().getHours();var g,m;if(h>=5&&h<12){g='🌅 Good Morning, '+n+'!';m='Great time to study! 💪';}else if(h>=12&&h<17){g='☀️ Good Afternoon, '+n+'!';m='Keep going! 🚀';}else if(h>=17&&h<21){g='🌇 Good Evening, '+n+'!';m='Revision time! 📝';}else{g='🌙 Good Night, '+n+'!';m='Quick revision before bed! 🧠';}var a=document.getElementById('heroGreeting');var b=document.getElementById('heroMessage');if(a)a.textContent=g;if(b)b.textContent=m;}
+(function(){var n=localStorage.getItem('sbName');if(n){var p=document.getElementById('namePopup');if(p)p.classList.add('hidden');updateGreeting();}})();
