@@ -30,35 +30,18 @@
 <!-- HOME -->
 <div id="home" class="pg show">
     <div class="hero">
-        <h1>Welcome Samuel! 👋</h1>
-        <p>Upload your textbooks and study smarter!</p>
+        <div class="hero">
+    <h1 id="heroGreeting">Welcome! 👋</h1>
+    <p id="heroMessage">Upload your textbooks and study smarter!</p>
+</div>
+<div class="name-popup" id="namePopup">
+    <div class="name-box">
+        <div style="font-size:3rem;margin-bottom:10px;">📚</div>
+        <h2 style="margin-bottom:4px;">Welcome to StudyBuddy!</h2>
+        <p style="color:var(--txt2);margin-bottom:16px;">What should we call you?</p>
+        <input type="text" id="nameInput" class="forminput" placeholder="e.g. Den Bovertin" onkeydown="if(event.key==='Enter')saveName()" style="text-align:center;font-size:1rem;padding:12px;">
+        <button class="btn primary fullwidth" onclick="saveName()" style="margin-top:10px;padding:12px;font-size:1rem;">Start Learning 🚀</button>
     </div>
-    <div class="statrow">
-        <div class="statcard"><span class="bignum" id="stBooks">0</span><span>Books</span></div>
-        <div class="statcard"><span class="bignum" id="stQuiz">0</span><span>Quizzes</span></div>
-        <div class="statcard"><span class="bignum" id="stScore">0%</span><span>Avg Score</span></div>
-    </div>
-    <div class="gridcards">
-        <div class="gcard upload-gcard" onclick="openUploadDialog()">
-            <span class="gcicon">📤</span><h3>Upload Book</h3>
-        </div>
-        <div class="gcard" onclick="navigate('library')">
-            <span class="gcicon">📚</span><h3>Library</h3>
-        </div>
-        <div class="gcard" onclick="navigate('quiz')">
-            <span class="gcicon">🧠</span><h3>Quiz</h3>
-        </div>
-        <div class="gcard" onclick="navigate('tamil')">
-            <span class="gcicon">🟢</span><h3>Tamil</h3>
-        </div>
-        <div class="gcard" onclick="navigate('helper')">
-            <span class="gcicon">🤖</span><h3>AI Help</h3>
-        </div>
-        <div class="gcard" onclick="navigate('timer')">
-            <span class="gcicon">⏱</span><h3>Timer</h3>
-        </div>
-    </div>
-    <div class="infobox" id="homeQuote"></div>
 </div>
 
 <!-- LIBRARY -->
