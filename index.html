@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyBuddy</title>
+    <title>StudyBuddy — Samuel's Study Helper</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -11,347 +11,328 @@
 
 <div id="toastBox" class="toast-box"></div>
 
+<!-- NAME POPUP -->
+<div class="name-popup" id="namePopup">
+    <div class="name-box">
+        <div style="font-size:3.5rem;margin-bottom:12px;animation:popBounce 1s ease infinite alternate;">📚</div>
+        <h2>Welcome to StudyBuddy!</h2>
+        <p style="color:var(--txt2);margin-bottom:18px;font-size:0.9rem;">What should we call you?</p>
+        <input type="text" id="nameInput" class="forminput" placeholder="e.g. Den Bovertin" style="text-align:center;font-size:1.05rem;padding:14px;" onkeydown="if(event.key==='Enter')saveName()">
+        <button class="btn primary fullwidth" onclick="saveName()" style="margin-top:12px;padding:14px;font-size:1.05rem;">Start Learning 🚀</button>
+        <p style="margin-top:12px;font-size:0.72rem;color:var(--txt3);">✨ We'll personalize your experience!</p>
+    </div>
+</div>
+
+<!-- NAVBAR -->
 <nav class="topnav">
     <span class="brand" onclick="navigate('home')">📚 StudyBuddy</span>
     <div class="navlinks">
-        <a onclick="navigate('home')">🏠Home</a>
-        <a onclick="navigate('library')">📚Library</a>
-        <a onclick="navigate('reader')">📖Reader</a>
-        <a onclick="navigate('quiz')">🧠Quiz</a>
-        <a onclick="navigate('flashcards')">🔤Cards</a>
-        <a onclick="navigate('tamil')">🟢Tamil</a>
-        <a onclick="navigate('helper')">🤖AI Help</a>
-        <a onclick="navigate('notes')">📝Notes</a>
-        <a onclick="navigate('timer')">⏱Timer</a>
+        <a onclick="navigate('home')">🏠 Home</a>
+        <a onclick="navigate('library')">📚 Library</a>
+        <a onclick="navigate('reader')">📖 Reader</a>
+        <a onclick="navigate('math')">📐 Math</a>
+        <a onclick="navigate('english')">📖 English</a>
+        <a onclick="navigate('hindi')">📝 Hindi</a>
+        <a onclick="navigate('tamil')">🟢 Tamil</a>
+        <a onclick="navigate('science')">🔬 Science</a>
+        <a onclick="navigate('quiz')">🧠 Quiz</a>
+        <a onclick="navigate('flashcards')">🔤 Cards</a>
+        <a onclick="navigate('helper')">🤖 AI</a>
+        <a onclick="navigate('notes')">📝 Notes</a>
+        <a onclick="navigate('timer')">⏱ Timer</a>
     </div>
     <button class="themebtn" onclick="switchTheme()">🌙</button>
 </nav>
 
-<!-- HOME -->
+<!-- ==================== HOME ==================== -->
 <div id="home" class="pg show">
     <div class="hero">
-        <div class="hero">
-    <h1 id="heroGreeting">Welcome! 👋</h1>
-    <p id="heroMessage">Upload your textbooks and study smarter!</p>
-</div>
-<div class="name-popup" id="namePopup">
-    <div class="name-box">
-        <div style="font-size:3rem;margin-bottom:10px;">📚</div>
-        <h2 style="margin-bottom:4px;">Welcome to StudyBuddy!</h2>
-        <p style="color:var(--txt2);margin-bottom:16px;">What should we call you?</p>
-        <input type="text" id="nameInput" class="forminput" placeholder="e.g. Den Bovertin" onkeydown="if(event.key==='Enter')saveName()" style="text-align:center;font-size:1rem;padding:12px;">
-        <button class="btn primary fullwidth" onclick="saveName()" style="margin-top:10px;padding:12px;font-size:1rem;">Start Learning 🚀</button>
+        <h1 id="heroGreeting">Welcome! 👋</h1>
+        <p id="heroMessage">Upload your textbooks and study smarter!</p>
     </div>
-</div>
 
-<!-- LIBRARY -->
-<div id="library" class="pg">
-    <div class="pghead">
-        <h2>📚 My Library</h2>
-        <button class="btn primary" onclick="openUploadDialog()">📤 Upload Book</button>
+    <div class="statrow">
+        <div class="statcard"><span class="bignum" id="stBooks">0</span><span>Books</span></div>
+        <div class="statcard"><span class="bignum" id="stQuiz">0</span><span>Quizzes</span></div>
+        <div class="statcard"><span class="bignum" id="stScore">0%</span><span>Avg Score</span></div>
     </div>
-    <div id="libContent" class="libgrid"></div>
-</div>
 
-<!-- READER -->
-<div id="reader" class="pg">
-    <div class="pghead">
-        <h2 id="readerBookTitle">📖 Reader</h2>
-        <div class="rdcontrols">
-            <button class="btn small" onclick="readerPrev()">⬅️ Prev</button>
-            <span id="readerPageNum">0 / 0</span>
-            <button class="btn small" onclick="readerNext()">Next ➡️</button>
-            <select id="readerPageSelect" onchange="readerJump(+this.value)" class="smallsel"></select>
-            <button class="btn small" onclick="readerZoomChange(0.2)">🔍+</button>
-            <button class="btn small" onclick="readerZoomChange(-0.2)">🔍−</button>
+    <div class="gridcards">
+        <div class="gcard upload-gcard" onclick="openUploadDialog()">
+            <span class="gcicon">📤</span><h3>Upload Book</h3>
+        </div>
+        <div class="gcard" onclick="navigate('math')">
+            <span class="gcicon">📐</span><h3>Math</h3>
+        </div>
+        <div class="gcard" onclick="navigate('english')">
+            <span class="gcicon">📖</span><h3>English</h3>
+        </div>
+        <div class="gcard" onclick="navigate('hindi')">
+            <span class="gcicon">📝</span><h3>Hindi</h3>
+        </div>
+        <div class="gcard" onclick="navigate('tamil')">
+            <span class="gcicon">🟢</span><h3>Tamil</h3>
+        </div>
+        <div class="gcard" onclick="navigate('science')">
+            <span class="gcicon">🔬</span><h3>Science</h3>
+        </div>
+        <div class="gcard" onclick="navigate('quiz')">
+            <span class="gcicon">🧠</span><h3>Quiz</h3>
+        </div>
+        <div class="gcard" onclick="navigate('helper')">
+            <span class="gcicon">🤖</span><h3>AI Help</h3>
+        </div>
+        <div class="gcard" onclick="navigate('timer')">
+            <span class="gcicon">⏱</span><h3>Timer</h3>
         </div>
     </div>
-    <div id="readerDisplay" class="reader-display">
-        <p class="placeholder">📖 Go to Library and click "Read" on a book</p>
-    </div>
+
+    <div class="infobox" id="homeQuote" style="border-left:4px solid var(--a);text-align:center;font-style:italic;color:var(--txt2);"></div>
 </div>
 
-<!-- QUIZ -->
-<div id="quiz" class="pg">
-    <h2>🧠 Smart Quiz</h2>
+<!-- ==================== MATH ==================== -->
+<div id="math" class="pg">
+    <h2>📐 Mathematics — Grade VIII</h2>
 
-    <div id="quizSetupBox" class="infobox">
-        <h3>📋 Quiz Setup</h3>
-        <label>Select Book:</label>
-        <select id="quizBookPicker" class="forminput" onchange="quizBookChanged()">
-            <option value="">-- Choose a book --</option>
-        </select>
-        <div id="quizPageRange" style="display:none;">
-            <div class="tworow">
-                <div><label>From Page:</label><input type="number" id="quizFrom" class="forminput" min="1" value="1"></div>
-                <div><label>To Page:</label><input type="number" id="quizTo" class="forminput" min="1" value="10"></div>
+    <div class="infobox">
+        <h3>📌 Key Formulas</h3>
+        <div class="infogrid">
+            <div class="infocard">
+                <h4>Algebra</h4>
+                <p>(a + b)² = a² + 2ab + b²</p>
+                <p>(a - b)² = a² - 2ab + b²</p>
+                <p>(a + b)(a - b) = a² - b²</p>
+                <p>(a + b)³ = a³ + 3a²b + 3ab² + b³</p>
             </div>
-            <label>Number of Questions:</label>
-            <select id="quizNumQ" class="forminput">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="15">15</option>
-            </select>
-            <button class="btn primary fullwidth" onclick="quizStart()">🚀 Start Quiz</button>
+            <div class="infocard">
+                <h4>Mensuration</h4>
+                <p>Trapezium = ½ × (a+b) × h</p>
+                <p>Rhombus = ½ × d₁ × d₂</p>
+                <p>Cube SA = 6a²</p>
+                <p>Cube Volume = a³</p>
+                <p>Cuboid Vol = l × b × h</p>
+                <p>Cylinder Vol = πr²h</p>
+            </div>
+            <div class="infocard">
+                <h4>Geometry</h4>
+                <p>Triangle angles = 180°</p>
+                <p>Quadrilateral = 360°</p>
+                <p>Exterior ∠ = Sum of opp. interior</p>
+                <p>Polygon angles = (n-2) × 180°</p>
+            </div>
+            <div class="infocard">
+                <h4>Profit, Loss & Interest</h4>
+                <p>Profit% = (Profit/CP) × 100</p>
+                <p>Loss% = (Loss/CP) × 100</p>
+                <p>SI = P × R × T / 100</p>
+                <p>CI = P(1 + R/100)ⁿ - P</p>
+            </div>
+            <div class="infocard">
+                <h4>Squares & Cubes</h4>
+                <p>11²=121, 12²=144, 13²=169</p>
+                <p>14²=196, 15²=225, 16²=256</p>
+                <p>17²=289, 18²=324, 19²=361</p>
+                <p>20²=400, 25²=625, 30²=900</p>
+            </div>
+            <div class="infocard">
+                <h4>Exponents</h4>
+                <p>aᵐ × aⁿ = aᵐ⁺ⁿ</p>
+                <p>aᵐ ÷ aⁿ = aᵐ⁻ⁿ</p>
+                <p>(aᵐ)ⁿ = aᵐⁿ</p>
+                <p>a⁰ = 1</p>
+            </div>
         </div>
     </div>
 
-    <div id="quizPlayBox" class="infobox" style="display:none;">
-        <div class="progbar"><div class="progfill" id="quizProgFill"></div></div>
-        <p id="quizProgLabel" class="small"></p>
-        <span class="typebadge" id="quizTypeBadge"></span>
-        <div id="quizQuestionText" class="questiontext"></div>
-        <div id="quizOptionsArea" class="optionsarea"></div>
-        <div id="quizFeedback" class="feedback"></div>
-        <div id="quizExplain" class="explain"></div>
-        <button id="quizNextBtn" class="btn primary" onclick="quizNextQuestion()" style="display:none;">Next ➡️</button>
+    <div class="infobox">
+        <h3>🧮 Math Quiz</h3>
+        <div id="mathQText" class="questiontext"></div>
+        <div id="mathQOpts" class="optionsarea"></div>
+        <div id="mathQFb" class="feedback"></div>
+        <button class="btn primary" onclick="mathQuizLoad()">Next Question ➡️</button>
         <div class="scorebar">
-            <span>✅ <b id="quizCorrectNum">0</b></span>
-            <span>❌ <b id="quizWrongNum">0</b></span>
-            <span>📊 <b id="quizPercentNum">0%</b></span>
-        </div>
-    </div>
-
-    <div id="quizResultBox" class="infobox center-text" style="display:none;">
-        <h2>🎉 Quiz Complete!</h2>
-        <div class="resultcircle" id="quizResultCircle"><span id="quizResultPct">0%</span></div>
-        <p id="quizResultMsg"></p>
-        <button class="btn primary" onclick="quizReset()">🔄 New Quiz</button>
-    </div>
-</div>
-
-<!-- FLASHCARDS -->
-<div id="flashcards" class="pg">
-    <div class="pghead">
-        <h2>🔤 Flashcards</h2>
-        <select id="fcBookPicker" class="smallsel" onchange="fcLoadBook(this.value)">
-            <option value="">-- Pick Book --</option>
-        </select>
-    </div>
-    <div id="fcContent">
-        <p class="placeholder">🔤 Select a book to generate flashcards</p>
-    </div>
-    <div id="fcCardArea" style="display:none;">
-        <div class="fcwrap">
-            <div class="flashcard" id="fcTheCard" onclick="fcFlip()">
-                <div class="fcfront" id="fcFrontText"></div>
-                <div class="fcback" id="fcBackText"></div>
-            </div>
-        </div>
-        <p class="small center-text">👆 Tap card to flip</p>
-        <div class="fcnav">
-            <button class="btn" onclick="fcGoPrev()">⬅️</button>
-            <span id="fcCounter">1 / 10</span>
-            <button class="btn" onclick="fcGoNext()">➡️</button>
+            <span>✅ <b id="mathSC">0</b></span>
+            <span>❌ <b id="mathSW">0</b></span>
         </div>
     </div>
 </div>
 
-<!-- TAMIL -->
-<div id="tamil" class="pg">
-    <h2>🟢 தமிழ் பகுதி — Tamil Section</h2>
+<!-- ==================== ENGLISH ==================== -->
+<div id="english" class="pg">
+    <h2>📖 English</h2>
 
     <div class="infobox">
-        <h3>📌 எழுத்துகள் (Letters)</h3>
+        <h3>📚 Grammar Quick Reference</h3>
         <div class="infogrid">
             <div class="infocard">
-                <h4>உயிர் எழுத்துகள் (Vowels) — 12</h4>
-                <p class="tamilbig">அ ஆ இ ஈ உ ஊ எ ஏ ஐ ஒ ஓ ஔ</p>
+                <h4>Parts of Speech</h4>
+                <p><b>Noun:</b> person, place, thing</p>
+                <p><b>Pronoun:</b> he, she, it, they</p>
+                <p><b>Verb:</b> run, eat, write</p>
+                <p><b>Adjective:</b> big, red, tall</p>
+                <p><b>Adverb:</b> quickly, slowly, well</p>
             </div>
             <div class="infocard">
-                <h4>மெய் எழுத்துகள் (Consonants) — 18</h4>
-                <p class="tamilbig">க் ங் ச் ஞ் ட் ண் த் ந் ப் ம் ய் ர் ல் வ் ழ் ள் ற் ன்</p>
+                <h4>Tenses</h4>
+                <p><b>Simple Present:</b> He writes daily</p>
+                <p><b>Present Cont:</b> He is writing now</p>
+                <p><b>Simple Past:</b> He wrote yesterday</p>
+                <p><b>Past Cont:</b> He was writing</p>
+                <p><b>Future:</b> He will write</p>
             </div>
             <div class="infocard">
-                <h4>உயிர்மெய் — 216</h4>
-                <p>உயிர் + மெய் = உயிர்மெய்</p>
-                <p>Example: க + அ = க, க + ஆ = கா</p>
+                <h4>Active & Passive Voice</h4>
+                <p><b>Active:</b> Ram eats an apple</p>
+                <p><b>Passive:</b> An apple is eaten by Ram</p>
+                <p>Rule: Object + is/am/are + V3 + by + Subject</p>
             </div>
             <div class="infocard">
-                <h4>ஆய்த எழுத்து — 1</h4>
-                <p class="tamilbig" style="font-size:2.5rem;">ஃ</p>
-                <p>Total: 12+18+216+1 = <b>247</b></p>
+                <h4>Direct & Indirect Speech</h4>
+                <p><b>Direct:</b> He said, "I am happy."</p>
+                <p><b>Indirect:</b> He said that he was happy.</p>
+                <p>Change tense, pronoun & remove quotes</p>
+            </div>
+            <div class="infocard">
+                <h4>Articles</h4>
+                <p><b>A:</b> before consonant sounds</p>
+                <p><b>An:</b> before vowel sounds</p>
+                <p><b>The:</b> specific/already known</p>
+                <p>Tip: "An hour" (silent h)</p>
+            </div>
+            <div class="infocard">
+                <h4>Modals</h4>
+                <p><b>Can:</b> ability (I can swim)</p>
+                <p><b>May:</b> permission (May I go?)</p>
+                <p><b>Must:</b> necessity (You must study)</p>
+                <p><b>Should:</b> advice (You should rest)</p>
+            </div>
+            <div class="infocard">
+                <h4>Types of Sentences</h4>
+                <p><b>Declarative:</b> States fact (.)</p>
+                <p><b>Interrogative:</b> Asks question (?)</p>
+                <p><b>Imperative:</b> Gives command (.)</p>
+                <p><b>Exclamatory:</b> Shows emotion (!)</p>
+            </div>
+            <div class="infocard">
+                <h4>Conjunctions</h4>
+                <p><b>And:</b> adds information</p>
+                <p><b>But:</b> shows contrast</p>
+                <p><b>Because:</b> shows reason</p>
+                <p><b>Although:</b> despite something</p>
             </div>
         </div>
     </div>
 
     <div class="infobox">
-        <h3>📖 இலக்கணம் (Grammar)</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>பெயர்ச்சொல் (Noun)</h4>
-                <p><b>பொருட்பெயர்:</b> மரம், புத்தகம்</p>
-                <p><b>இடப்பெயர்:</b> சென்னை, பள்ளி</p>
-                <p><b>காலப்பெயர்:</b> காலை, மாலை</p>
-            </div>
-            <div class="infocard">
-                <h4>வினைச்சொல் (Verb)</h4>
-                <p>நடக்கிறான் = walks</p>
-                <p>நடந்தான் = walked</p>
-                <p>நடப்பான் = will walk</p>
-            </div>
-            <div class="infocard">
-                <h4>காலம் (Tense)</h4>
-                <p><b>இறந்தகாலம்:</b> Past</p>
-                <p><b>நிகழ்காலம்:</b> Present</p>
-                <p><b>எதிர்காலம்:</b> Future</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="infobox">
-        <h3>🔤 சொல் பயிற்சி (Vocabulary)</h3>
+        <h3>🔤 Vocabulary Builder</h3>
         <div class="fcwrap">
-            <div class="flashcard tamilcard" id="tamilCard" onclick="tamilFlip()">
-                <div class="fcfront tamilfront" id="tamilFront">தமிழ்</div>
-                <div class="fcback tamilback" id="tamilBack">Tamil</div>
+            <div class="flashcard" id="engFC" onclick="engFCFlip()">
+                <div class="fcfront engfront" id="engFCF">Word</div>
+                <div class="fcback engback" id="engFCB">Meaning</div>
             </div>
         </div>
         <p class="small center-text">👆 Tap to see meaning</p>
         <div class="fcnav">
-            <button class="btn" onclick="tamilPrev()">⬅️</button>
-            <span id="tamilCounter">1 / 25</span>
-            <button class="btn" onclick="tamilNext()">➡️</button>
+            <button class="btn" onclick="engFCPrev()">⬅️</button>
+            <span id="engFCCt">1 / 15</span>
+            <button class="btn" onclick="engFCNext()">➡️</button>
         </div>
     </div>
 
     <div class="infobox">
-        <h3>📝 Tamil Quiz</h3>
-        <div id="tamilQText" class="questiontext"></div>
-        <div id="tamilQOpts" class="optionsarea"></div>
-        <div id="tamilQFb" class="feedback"></div>
-        <button class="btn primary" onclick="tamilQuizLoad()">Next Question ➡️</button>
+        <h3>📝 English Quiz</h3>
+        <div id="engQText" class="questiontext"></div>
+        <div id="engQOpts" class="optionsarea"></div>
+        <div id="engQFb" class="feedback"></div>
+        <button class="btn primary" onclick="engQuizLoad()">Next Question ➡️</button>
         <div class="scorebar">
-            <span>✅ <b id="tamilScoreC">0</b></span>
-            <span>❌ <b id="tamilScoreW">0</b></span>
+            <span>✅ <b id="engSC">0</b></span>
+            <span>❌ <b id="engSW">0</b></span>
         </div>
     </div>
 
     <div class="infobox">
-        <h3>📚 பழமொழிகள் (Proverbs)</h3>
+        <h3>✍️ Writing Tips</h3>
         <div class="infogrid">
-            <div class="infocard proverbcard"><p class="proverbtext">கற்றது கைமண் அளவு, கல்லாதது உலகளவு</p><p class="proverbmeaning">What you know is a handful; what you don't is the world</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">அறிவே ஆற்றல்</p><p class="proverbmeaning">Knowledge is Power</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">உழைப்பே உயர்வு</p><p class="proverbmeaning">Hard work leads to greatness</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">விதை நன்றாக இருந்தால் விளைச்சல் நன்றாக இருக்கும்</p><p class="proverbmeaning">Good seeds yield a good harvest</p></div>
-        </div>
-    </div>
-</div>
-
-<!-- AI HELPER -->
-<div id="helper" class="pg">
-    <div class="pghead">
-        <h2>🤖 AI Study Helper</h2>
-        <select id="aiBookPicker" class="smallsel" onchange="aiSelectBook(this.value)">
-            <option value="">📚 Select book first</option>
-        </select>
-    </div>
-    <div class="chatarea" id="chatArea">
-        <div class="chatmsg bot"><div class="chatavatar">🤖</div><div class="chatbubble"><p>Hi Samuel! 👋</p><p>Select a book above, then ask me anything:</p><p>• "What is [topic]?"</p><p>• "Summarize page 5"</p><p>• "Find [keyword]"</p></div></div>
-    </div>
-    <div class="chatinputrow">
-        <input type="text" id="chatInput" class="chatinput" placeholder="Ask about your book..." onkeydown="if(event.key==='Enter')aiSendMessage()">
-        <button class="btn primary" onclick="aiSendMessage()">Send</button>
-    </div>
-</div>
-
-<!-- NOTES -->
-<div id="notes" class="pg">
-    <div class="pghead">
-        <h2>📝 Notes</h2>
-        <button class="btn" onclick="noteStartNew()">➕ New</button>
-    </div>
-    <div id="noteEditArea" class="infobox" style="display:none;">
-        <input type="text" id="noteEditTitle" class="forminput" placeholder="Title...">
-        <textarea id="noteEditBody" class="forminput textarea" placeholder="Write notes..."></textarea>
-        <div class="btnrow">
-            <button class="btn primary" onclick="noteSave()">💾 Save</button>
-            <button class="btn" onclick="noteCancel()">Cancel</button>
-        </div>
-    </div>
-    <div id="noteListArea"></div>
-</div>
-
-<!-- TIMER -->
-<div id="timer" class="pg">
-    <h2>⏱️ Study Timer</h2>
-    <div class="timerwrap">
-        <div class="timerdisp" id="timerDisplay">25:00</div>
-        <div class="btnrow center-text">
-            <button class="btn green" onclick="timerStart()">▶️ Start</button>
-            <button class="btn orange" onclick="timerPause()">⏸ Pause</button>
-            <button class="btn red" onclick="timerReset()">🔄 Reset</button>
-        </div>
-        <div class="btnrow center-text" style="margin-top:12px;">
-            <button class="prebtn" onclick="timerSetMinutes(25)">📖 25m</button>
-            <button class="prebtn" onclick="timerSetMinutes(5)">☕ 5m</button>
-            <button class="prebtn" onclick="timerSetMinutes(15)">🎮 15m</button>
-            <button class="prebtn" onclick="timerSetMinutes(45)">📚 45m</button>
-        </div>
-    </div>
-</div>
-
-<!-- UPLOAD DIALOG -->
-<div class="overlay" id="uploadOverlay">
-    <div class="dialog">
-        <div class="dialogtop">
-            <h3>📤 Upload PDF Book</h3>
-            <button class="xbtn" onclick="closeUploadDialog()">✕</button>
-        </div>
-        <div class="dialogbody">
-            <div id="uploadTutorial" class="tutbox">
-                <h4>📖 How to Upload</h4>
-                <p>1️⃣ Click the box below to pick a PDF file</p>
-                <p>2️⃣ Enter the book title and subject</p>
-                <p>3️⃣ Click "Upload & Process"</p>
-                <p>💡 Download NCERT books from <b>ncert.nic.in</b></p>
-                <button class="btn primary fullwidth" onclick="this.parentElement.style.display='none'">Got it! →</button>
+            <div class="infocard">
+                <h4>📧 Letter Writing</h4>
+                <p>1. Sender's Address (top-right)</p>
+                <p>2. Date</p>
+                <p>3. Receiver's Address (left)</p>
+                <p>4. Subject</p>
+                <p>5. Salutation (Dear Sir/Madam)</p>
+                <p>6. Body (3 paragraphs)</p>
+                <p>7. Closing (Yours faithfully)</p>
             </div>
-
-            <div id="uploadStep1">
-                <label class="filepicker" id="filePicker">
-                    <input type="file" id="realFileInput" accept=".pdf" onchange="handleFilePick(event)">
-                    <span style="font-size:2.5rem;">📄</span>
-                    <p><b>Click here to choose PDF</b></p>
-                    <p class="small">Or drag and drop</p>
-                </label>
+            <div class="infocard">
+                <h4>📝 Essay Writing</h4>
+                <p>1. <b>Introduction:</b> Hook + Thesis</p>
+                <p>2. <b>Body 1:</b> Main point + Example</p>
+                <p>3. <b>Body 2:</b> Supporting point</p>
+                <p>4. <b>Conclusion:</b> Summary + Opinion</p>
             </div>
-
-            <div id="uploadStep2" style="display:none;">
-                <div class="fileinfo">
-                    <span>📄</span>
-                    <div><b id="pickedFileName">file.pdf</b><br><small id="pickedFileSize">0 MB</small></div>
-                    <button class="btn small" onclick="resetUploadDialog()">Change</button>
-                </div>
-                <label>Book Title *</label>
-                <input type="text" id="uploadTitle" class="forminput" placeholder="e.g. Maths NCERT">
-                <label>Subject *</label>
-                <select id="uploadSubject" class="forminput">
-                    <option value="">-- Pick --</option>
-                    <option value="math">📐 Mathematics</option>
-                    <option value="english">📖 English</option>
-                    <option value="hindi">📝 Hindi</option>
-                    <option value="tamil">🟢 Tamil</option>
-                    <option value="science">🔬 Science</option>
-                    <option value="social">🌍 Social Science</option>
-                    <option value="computer">💻 Computer</option>
-                    <option value="other">📦 Other</option>
-                </select>
-                <div id="uploadProgressArea" style="display:none;">
-                    <div class="progbar"><div class="progfill" id="uploadProgFill"></div></div>
-                    <p id="uploadStatusText" class="small center-text"></p>
-                </div>
-                <button class="btn primary fullwidth" id="uploadGoBtn" onclick="processUpload()" style="margin-top:12px;">📤 Upload & Process</button>
+            <div class="infocard">
+                <h4>📊 Notice Writing</h4>
+                <p>1. Name of Organization</p>
+                <p>2. Title: NOTICE</p>
+                <p>3. Date</p>
+                <p>4. Heading</p>
+                <p>5. Body (What, When, Where)</p>
+                <p>6. Signature & Designation</p>
             </div>
         </div>
     </div>
 </div>
 
-<!-- FAB -->
-<button class="fab" onclick="openUploadDialog()">📤</button>
+<!-- ==================== HINDI ==================== -->
+<div id="hindi" class="pg">
+    <h2>📝 हिंदी (Hindi)</h2>
 
-<footer><p>Made with ❤️ by Samuel Giftson S | Grade VIII</p></footer>
+    <div class="infobox">
+        <h3>📖 व्याकरण (Grammar)</h3>
+        <div class="infogrid">
+            <div class="infocard">
+                <h4>संज्ञा (Noun)</h4>
+                <p><b>व्यक्तिवाचक:</b> राम, दिल्ली</p>
+                <p><b>जातिवाचक:</b> लड़का, नदी</p>
+                <p><b>भाववाचक:</b> सुंदरता, बचपन</p>
+            </div>
+            <div class="infocard">
+                <h4>सर्वनाम (Pronoun)</h4>
+                <p><b>पुरुषवाचक:</b> मैं, तू, वह</p>
+                <p><b>निश्चयवाचक:</b> यह, वह</p>
+                <p><b>प्रश्नवाचक:</b> कौन, क्या</p>
+            </div>
+            <div class="infocard">
+                <h4>विशेषण (Adjective)</h4>
+                <p><b>गुणवाचक:</b> अच्छा, सुंदर</p>
+                <p><b>संख्यावाचक:</b> दो, तीन</p>
+                <p><b>परिमाणवाचक:</b> थोड़ा, बहुत</p>
+            </div>
+            <div class="infocard">
+                <h4>काल (Tense)</h4>
+                <p><b>भूतकाल:</b> गया, खाया</p>
+                <p><b>वर्तमानकाल:</b> जाता है, खाता है</p>
+                <p><b>भविष्यकाल:</b> जाएगा, खाएगा</p>
+            </div>
+        </div>
+    </div>
 
-<script src="script.js"></script>
-</body>
-</html>
+    <div class="infobox">
+        <h3>🔤 शब्द भंडार (Vocabulary)</h3>
+        <div class="fcwrap">
+            <div class="flashcard" id="hindiFC" onclick="hindiFCFlip()">
+                <div class="fcfront" id="hindiFCF">शब्द</div>
+                <div class="fcback" id="hindiFCB">Meaning</div>
+            </div>
+        </div>
+        <p class="small center-text">👆 Tap to flip</p>
+        <div class="fcnav">
+            <button class="btn" onclick="hindiFCPrev()">⬅️</button>
+            <span id="hindiFCCt">1 / 15</span>
+            <button class="btn" onclick="hindiFCNext()">➡️</button>
+        </div>
+    </div>
+
+    <div class="infobox">
+        <h3>📝 Hindi Quiz (हिंदी प्रश्नोत्तर
