@@ -495,6 +495,170 @@ function engFCShow() {
     document.getElementById('engFC').classList.remove('flipped');
 }
 function engFCFlip() { document.getElementById('engFC').classList.toggle('flipped'); }
+// ============ PRONUNCIATION ============
+var currentPronunciation = 'US'; // 'US' or 'UK'
+
+function setPronunciation(type) {
+    currentPronunciation = type;
+    document.getElementById('pronUSBtn').classList.remove('active');
+    document.getElementById('pronUKBtn').classList.remove('active');
+    if (type === 'US') {
+        document.getElementById('pronUSBtn').classList.add('active');
+    } else {
+        document.getElementById('pronUKBtn').classList.add('active');
+    }
+    toast('Switched to ' + (type === 'US' ? '🇺🇸 American' : '🇬🇧 British') + ' pronunciation', 'info');
+}
+
+function speakWord(word) {
+    if (!('speechSynthesis' in window)) {
+        toast('Speech not supported in this browser!', 'err');
+        return;
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    var utterance = new SpeechSynthesisUtterance(word);
+    utterance.rate = 0.85;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    // Get available voices
+    var voices = window.speechSynthesis.getVoices();
+
+    if (currentPronunciation === 'US') {
+        // Try to find American English voice
+        var usVoice = voices.find(function (v) {
+            return v.lang === 'en-US';
+        });
+        if (usVoice) utterance.voice = usVoice;
+        utterance.lang = 'en-US';
+    } else {
+        // Try to find British English voice
+        var ukVoice = voices.find(function (v) {
+            return v.lang === 'en-GB';
+        });
+        if (ukVoice) utterance.voice = ukVoice;
+        utterance.lang = 'en-GB';
+    }
+
+    window.speechSynthesis.speak(utterance);
+}
+
+function speakCurrentWord() {
+    var word = engWords[engFCI].w;
+    speakWord(word);
+
+    // Visual feedback
+    var speakBtn = document.querySelector('.speak-btn');
+    if (speakBtn) {
+        speakBtn.classList.add('speaking');
+        setTimeout(function () {
+            speakBtn.classList.remove('speaking');
+        }, 1500);
+    }
+}
+
+// Load voices (some browsers load them async)
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = function () {
+        window.speechSynthesis.getVoices();
+    };
+}
+
+// ============ DICTIONARY (LEARNED WORDS) ============
+var learnedWords = JSON.parse(localStorage.getItem('sbDictionary') || '[]');
+
+function markAsLearned() {
+    var currentWord = engWords[engFCI];
+
+    // Check if already learned
+    var exists = learnedWords.find(function (w) {
+        return w.word === currentWord.w;
+    });
+
+    if (exists) {
+        toast('"' + currentWord.w + '" is already in your dictionary!', 'warn');
+        return;
+    }
+
+    learnedWords.push({
+        word: currentWord.w,
+        meaning: currentWord.m,
+        date: new Date().toLocaleDateString(),
+        timestamp: Date.now()
+    });
+
+    localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
+    renderDictionary();
+    toast('✅ "' + currentWord.w + '" added to dictionary!', 'ok');
+}
+
+function renderDictionary(filter) {
+    var container = document.getElementById('dictionaryList');
+    var countEl = document.getElementById('dictCount');
+
+    if (countEl) {
+        countEl.textContent = learnedWords.length + ' word' + (learnedWords.length !== 1 ? 's' : '') + ' learned';
+    }
+
+    if (learnedWords.length === 0) {
+        container.innerHTML = '<p class="placeholder">No words learned yet. Flip cards and click ✅ Learned!</p>';
+        return;
+    }
+
+    var wordsToShow = learnedWords;
+    if (filter) {
+        var lowerFilter = filter.toLowerCase();
+        wordsToShow = learnedWords.filter(function (w) {
+            return w.word.toLowerCase().indexOf(lowerFilter) !== -1 || w.meaning.toLowerCase().indexOf(lowerFilter) !== -1;
+        });
+    }
+
+    if (wordsToShow.length === 0) {
+        container.innerHTML = '<p class="placeholder">No matching words found</p>';
+        return;
+    }
+
+    var html = '';
+    // Show newest first
+    for (var i = wordsToShow.length - 1; i >= 0; i--) {
+        var w = wordsToShow[i];
+        html += '<div class="dict-word">' +
+            '<div class="dict-word-text">' +
+            '<h4>' + w.word + '</h4>' +
+            '<p>' + w.meaning + '</p>' +
+            '<span class="dict-word-date">📅 ' + w.date + '</span>' +
+            '</div>' +
+            '<div class="dict-word-actions">' +
+            '<button class="dict-speak-btn" onclick="speakWord(\'' + w.word + '\')" title="Speak">🔊</button>' +
+            '<button class="dict-remove-btn" onclick="removeFromDictionary(\'' + w.word + '\')" title="Remove">✕</button>' +
+            '</div></div>';
+    }
+    container.innerHTML = html;
+}
+
+function removeFromDictionary(word) {
+    learnedWords = learnedWords.filter(function (w) {
+        return w.word !== word;
+    });
+    localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
+    renderDictionary();
+    toast('"' + word + '" removed from dictionary', 'info');
+}
+
+function filterDictionary(searchText) {
+    renderDictionary(searchText);
+}
+
+function clearDictionary() {
+    if (!confirm('🗑️ Clear all learned words?')) return;
+    learnedWords = [];
+    localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
+    renderDictionary();
+    toast('Dictionary cleared!', 'info');
+}
 function engFCNext() { engFCI = (engFCI + 1) % engWords.length; engFCShow(); }
 function engFCPrev() { engFCI = (engFCI - 1 + engWords.length) % engWords.length; engFCShow(); }
 
@@ -1199,6 +1363,7 @@ window.onload = async function () {
 
     // Subject flashcards & quizzes
     engFCShow();
+    renderDictionary();
     engQuizLoad();
     hindiFCShow();
     hindiQuizLoad();
