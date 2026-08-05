@@ -1,35 +1,47 @@
+// =============================================
+//  STUDYBUDDY — COMPLETE WORKING VERSION
+//  By Samuel Giftson S
+// =============================================
+
 pdfjsLib.GlobalWorkerOptions.workerSrc =
     'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ---- TOAST ----
+// ============ TOAST ============
 function toast(msg, type) {
     var box = document.getElementById('toastBox');
     var el = document.createElement('div');
     el.className = 'toast-item toast-' + (type || 'info');
     el.textContent = msg;
     box.appendChild(el);
-    setTimeout(function() { el.remove(); }, 4000);
+    setTimeout(function () {
+        el.remove();
+    }, 4000);
 }
 
-// ---- DATABASE ----
+// ============ DATABASE ============
 var db = null;
 
 function openDatabase() {
-    return new Promise(function(resolve, reject) {
-        var request = indexedDB.open('StudyBuddyV6', 1);
-        request.onupgradeneeded = function(e) {
+    return new Promise(function (resolve, reject) {
+        var request = indexedDB.open('StudyBuddyV7', 1);
+        request.onupgradeneeded = function (e) {
             var d = e.target.result;
             if (!d.objectStoreNames.contains('books')) d.createObjectStore('books', { keyPath: 'id' });
             if (!d.objectStoreNames.contains('pdfs')) d.createObjectStore('pdfs', { keyPath: 'id' });
             if (!d.objectStoreNames.contains('notes')) d.createObjectStore('notes', { keyPath: 'id' });
         };
-        request.onsuccess = function(e) { db = e.target.result; resolve(); };
-        request.onerror = function() { reject('DB error'); };
+        request.onsuccess = function (e) {
+            db = e.target.result;
+            resolve();
+        };
+        request.onerror = function () {
+            reject('DB error');
+        };
     });
 }
 
 function dbSave(storeName, data) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var tx = db.transaction(storeName, 'readwrite');
         tx.objectStore(storeName).put(data);
         tx.oncomplete = resolve;
@@ -38,25 +50,25 @@ function dbSave(storeName, data) {
 }
 
 function dbGetAll(storeName) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var tx = db.transaction(storeName, 'readonly');
         var req = tx.objectStore(storeName).getAll();
-        req.onsuccess = function() { resolve(req.result); };
+        req.onsuccess = function () { resolve(req.result); };
         req.onerror = reject;
     });
 }
 
 function dbGet(storeName, id) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var tx = db.transaction(storeName, 'readonly');
         var req = tx.objectStore(storeName).get(id);
-        req.onsuccess = function() { resolve(req.result); };
+        req.onsuccess = function () { resolve(req.result); };
         req.onerror = reject;
     });
 }
 
 function dbRemove(storeName, id) {
-    return new Promise(function(resolve, reject) {
+    return new Promise(function (resolve, reject) {
         var tx = db.transaction(storeName, 'readwrite');
         tx.objectStore(storeName).delete(id);
         tx.oncomplete = resolve;
@@ -64,13 +76,13 @@ function dbRemove(storeName, id) {
     });
 }
 
-// ---- STATE ----
+// ============ STATE ============
 var allBooks = [];
 var allNotes = [];
 var stats = JSON.parse(localStorage.getItem('sbstats') || '{"q":0,"c":0,"a":0}');
 var currentFile = null;
 
-// ---- NAVIGATION ----
+// ============ NAVIGATION ============
 function navigate(pageId) {
     var pages = document.querySelectorAll('.pg');
     for (var i = 0; i < pages.length; i++) {
@@ -86,7 +98,7 @@ function navigate(pageId) {
     if (pageId === 'notes') renderNotes();
 }
 
-// ---- THEME ----
+// ============ THEME ============
 function switchTheme() {
     document.body.classList.toggle('dark-theme');
     var btn = document.querySelector('.themebtn');
@@ -94,7 +106,7 @@ function switchTheme() {
     localStorage.setItem('sbtheme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
 }
 
-// ---- DASHBOARD ----
+// ============ DASHBOARD ============
 function updateDashboard() {
     document.getElementById('stBooks').textContent = allBooks.length;
     document.getElementById('stQuiz').textContent = stats.q;
@@ -102,16 +114,16 @@ function updateDashboard() {
 }
 
 function subjectEmoji(s) {
-    var map = { math:'📐', english:'📖', hindi:'📝', tamil:'🟢', science:'🔬', social:'🌍', computer:'💻', other:'📦' };
+    var map = { math: '📐', english: '📖', hindi: '📝', tamil: '🟢', science: '🔬', social: '🌍', computer: '💻', other: '📦' };
     return map[s] || '📄';
 }
 
 function subjectColor(s) {
-    var map = { math:'#4f46e5,#7c3aed', english:'#059669,#10b981', hindi:'#db2777,#ec4899', tamil:'#059669,#0d9488', science:'#0891b2,#06b6d4', social:'#d97706,#f59e0b', computer:'#7c3aed,#8b5cf6' };
+    var map = { math: '#4f46e5,#7c3aed', english: '#059669,#10b981', hindi: '#db2777,#ec4899', tamil: '#059669,#0d9488', science: '#0891b2,#06b6d4', social: '#d97706,#f59e0b', computer: '#7c3aed,#8b5cf6' };
     return map[s] || '#64748b,#94a3b8';
 }
 
-// ---- NAME GREETING ----
+// ============ NAME GREETING ============
 function saveName() {
     var n = document.getElementById('nameInput').value.trim();
     if (!n) {
@@ -133,16 +145,16 @@ function updateGreeting() {
 
     if (h >= 5 && h < 12) {
         g = '🌅 Good Morning, ' + n + '!';
-        m = 'Great time to study! 💪';
+        m = 'Great time to study! Start your day strong 💪';
     } else if (h >= 12 && h < 17) {
         g = '☀️ Good Afternoon, ' + n + '!';
-        m = 'Keep going! 🚀';
+        m = 'Keep the momentum going! You got this 🚀';
     } else if (h >= 17 && h < 21) {
         g = '🌇 Good Evening, ' + n + '!';
-        m = 'Revision time! 📝';
+        m = 'Evening revision time! Review what you learned 📝';
     } else {
         g = '🌙 Good Night, ' + n + '!';
-        m = 'Quick revision before bed! 🧠';
+        m = 'Quick revision before bed helps memory! 🧠';
     }
 
     var a = document.getElementById('heroGreeting');
@@ -151,13 +163,10 @@ function updateGreeting() {
     if (b) b.textContent = m;
 }
 
-// ---- UPLOAD ----
+// ============ UPLOAD ============
 function openUploadDialog() {
     document.getElementById('uploadOverlay').classList.add('show');
     resetUploadDialog();
-    if (localStorage.getItem('sbtut')) {
-        document.getElementById('uploadTutorial').style.display = 'none';
-    }
 }
 
 function closeUploadDialog() {
@@ -186,7 +195,6 @@ function handleFilePick(event) {
     document.getElementById('pickedFileSize').textContent = (file.size / 1048576).toFixed(1) + ' MB';
     document.getElementById('uploadTitle').value = file.name.replace('.pdf', '').replace(/[_-]+/g, ' ');
     document.getElementById('uploadSubject').value = '';
-    localStorage.setItem('sbtut', '1');
     toast('File selected!', 'info');
 }
 
@@ -208,13 +216,14 @@ async function processUpload() {
         statusText.textContent = 'Reading file...';
         fillBar.style.width = '5%';
 
-        var arrayBuffer = await new Promise(function(resolve, reject) {
+        var arrayBuffer = await new Promise(function (resolve, reject) {
             var reader = new FileReader();
-            reader.onload = function() { resolve(reader.result); };
-            reader.onerror = function() { reject(new Error('Cannot read file')); };
+            reader.onload = function () { resolve(reader.result); };
+            reader.onerror = function () { reject(new Error('Cannot read file')); };
             reader.readAsArrayBuffer(currentFile);
         });
 
+        // Copy BEFORE pdf.js consumes it
         var arrayBufferCopy = arrayBuffer.slice(0);
 
         statusText.textContent = 'Loading PDF...';
@@ -228,7 +237,7 @@ async function processUpload() {
             try {
                 var page = await pdf.getPage(i);
                 var textContent = await page.getTextContent();
-                var pageText = textContent.items.map(function(item) { return item.str; }).join(' ').trim();
+                var pageText = textContent.items.map(function (item) { return item.str; }).join(' ').trim();
                 pageTexts.push(pageText || '');
                 fullText += pageText + '\n\n';
             } catch (e) {
@@ -262,7 +271,7 @@ async function processUpload() {
         updateDashboard();
         toast('"' + title + '" uploaded! ' + totalPages + ' pages.', 'ok');
 
-        setTimeout(function() {
+        setTimeout(function () {
             closeUploadDialog();
             navigate('library');
         }, 600);
@@ -275,7 +284,7 @@ async function processUpload() {
     btn.textContent = '📤 Upload & Process';
 }
 
-// ---- LIBRARY ----
+// ============ LIBRARY ============
 function renderLibrary() {
     var grid = document.getElementById('libContent');
     if (allBooks.length === 0) {
@@ -301,25 +310,25 @@ function renderLibrary() {
 
 async function deleteBook(bookId) {
     if (!confirm('🗑️ Delete this book?')) return;
-    var book = allBooks.find(function(b) { return b.id === bookId; });
+    var book = allBooks.find(function (b) { return b.id === bookId; });
     if (book && book.pdfId) {
-        try { await dbRemove('pdfs', book.pdfId); } catch(e) {}
+        try { await dbRemove('pdfs', book.pdfId); } catch (e) { }
     }
     await dbRemove('books', bookId);
-    allBooks = allBooks.filter(function(b) { return b.id !== bookId; });
+    allBooks = allBooks.filter(function (b) { return b.id !== bookId; });
     renderLibrary();
     updateDashboard();
     toast('Book deleted!', 'info');
 }
 
-// ---- READER ----
+// ============ READER ============
 var readerPdfDoc = null;
 var readerCurrentPage = 0;
 var readerZoomLevel = 1.3;
 var readerCurrentBook = null;
 
 async function openReader(bookId) {
-    var book = allBooks.find(function(b) { return b.id === bookId; });
+    var book = allBooks.find(function (b) { return b.id === bookId; });
     if (!book) { toast('Book not found!', 'err'); return; }
 
     readerCurrentBook = book;
@@ -329,7 +338,7 @@ async function openReader(bookId) {
 
     navigate('reader');
     document.getElementById('readerBookTitle').textContent = '📖 ' + book.title;
-    document.getElementById('readerDisplay').innerHTML = '<p class="placeholder">⏳ Loading book...</p>';
+    document.getElementById('readerDisplay').innerHTML = '<p class="placeholder">⏳ Loading...</p>';
 
     try {
         var pdfData = await dbGet('pdfs', book.pdfId);
@@ -404,13 +413,13 @@ async function readerZoomChange(delta) {
     if (readerPdfDoc) await renderReaderPage();
 }
 
-// ---- SELECT POPULATOR ----
+// ============ SELECT POPULATOR ============
 function populateSelect(selectId) {
     var sel = document.getElementById(selectId);
     if (!sel) return;
     var oldVal = sel.value;
-    var first = sel.options[0] ? sel.options[0].textContent : '-- Pick --';
-    sel.innerHTML = '<option value="">' + first + '</option>';
+    var firstText = sel.options[0] ? sel.options[0].textContent : '-- Pick --';
+    sel.innerHTML = '<option value="">' + firstText + '</option>';
     for (var i = 0; i < allBooks.length; i++) {
         var b = allBooks[i];
         var opt = document.createElement('option');
@@ -421,7 +430,249 @@ function populateSelect(selectId) {
     sel.value = oldVal;
 }
 
-// ---- QUIZ ----
+// ============ MATH QUIZ ============
+var mathSC = 0, mathSW = 0;
+var mathQuizData = [
+    { q: 'What is (a + b)² equal to?', o: ['a² + b²', 'a² + 2ab + b²', 'a² - 2ab + b²', '2a² + 2b²'], a: 1 },
+    { q: 'Area of Trapezium = ?', o: ['l × b', '½(a+b)×h', 'π×r²', '½×b×h'], a: 1 },
+    { q: 'What is 15% of 200?', o: ['15', '20', '25', '30'], a: 3 },
+    { q: 'If x + 5 = 12, what is x?', o: ['5', '6', '7', '8'], a: 2 },
+    { q: 'Volume of cube with side 3cm?', o: ['9 cm³', '18 cm³', '27 cm³', '36 cm³'], a: 2 },
+    { q: 'What is √144?', o: ['10', '11', '12', '13'], a: 2 },
+    { q: 'Sum of angles in quadrilateral?', o: ['180°', '270°', '360°', '540°'], a: 2 },
+    { q: 'What is 2³ × 3²?', o: ['36', '48', '72', '108'], a: 2 },
+    { q: 'SI for P=1000, R=10%, T=2yr?', o: ['100', '150', '200', '250'], a: 2 },
+    { q: 'What is (a-b)(a+b)?', o: ['a²+b²', 'a²-b²', '2ab', 'a²+2ab+b²'], a: 1 },
+    { q: 'Cube root of 64?', o: ['2', '3', '4', '8'], a: 2 },
+    { q: '3x - 7 = 8, find x?', o: ['3', '4', '5', '6'], a: 2 }
+];
+
+function mathQuizLoad() {
+    var q = mathQuizData[Math.floor(Math.random() * mathQuizData.length)];
+    document.getElementById('mathQText').textContent = q.q;
+    document.getElementById('mathQFb').textContent = '';
+    var od = document.getElementById('mathQOpts');
+    od.innerHTML = '';
+    q.o.forEach(function (opt, idx) {
+        var btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = function () {
+            od.querySelectorAll('button').forEach(function (b) { b.onclick = null; b.classList.add('locked'); });
+            var fb = document.getElementById('mathQFb');
+            if (idx === q.a) { mathSC++; btn.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { mathSW++; btn.classList.add('wrong'); od.children[q.a].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('mathSC').textContent = mathSC;
+            document.getElementById('mathSW').textContent = mathSW;
+        };
+        od.appendChild(btn);
+    });
+}
+
+// ============ ENGLISH VOCAB & QUIZ ============
+var engWords = [
+    { w: 'Benevolent', m: 'Kind, generous (दयालु)' },
+    { w: 'Eloquent', m: 'Fluent speaker (वाक्पटु)' },
+    { w: 'Resilient', m: 'Recovers quickly (लचीला)' },
+    { w: 'Diligent', m: 'Hardworking (परिश्रमी)' },
+    { w: 'Ambiguous', m: 'Double meaning (अस्पष्ट)' },
+    { w: 'Inevitable', m: 'Certain to happen (अनिवार्य)' },
+    { w: 'Compassion', m: 'Deep sympathy (करुणा)' },
+    { w: 'Perseverance', m: 'Continued effort (दृढ़ता)' },
+    { w: 'Magnificent', m: 'Extremely beautiful (शानदार)' },
+    { w: 'Catastrophe', m: 'A great disaster (विपत्ति)' },
+    { w: 'Reluctant', m: 'Unwilling (अनिच्छुक)' },
+    { w: 'Abundant', m: 'Large amounts (प्रचुर)' },
+    { w: 'Courageous', m: 'Brave (साहसी)' },
+    { w: 'Gratitude', m: 'Thankfulness (कृतज्ञता)' },
+    { w: 'Melancholy', m: 'Deep sadness (उदासी)' }
+];
+var engFCI = 0;
+
+function engFCShow() {
+    document.getElementById('engFCF').textContent = engWords[engFCI].w;
+    document.getElementById('engFCB').textContent = engWords[engFCI].m;
+    document.getElementById('engFCCt').textContent = (engFCI + 1) + ' / ' + engWords.length;
+    document.getElementById('engFC').classList.remove('flipped');
+}
+function engFCFlip() { document.getElementById('engFC').classList.toggle('flipped'); }
+function engFCNext() { engFCI = (engFCI + 1) % engWords.length; engFCShow(); }
+function engFCPrev() { engFCI = (engFCI - 1 + engWords.length) % engWords.length; engFCShow(); }
+
+var engSC = 0, engSW = 0;
+var engQuizData = [
+    { q: 'Passive voice of "She writes a letter"?', o: ['A letter is written by her', 'A letter was written', 'She is written', 'Letter writes she'], a: 0 },
+    { q: 'Correct article: "__ honest man"', o: ['A', 'An', 'The', 'No article'], a: 1 },
+    { q: '"Happiness" is what type of noun?', o: ['Common', 'Proper', 'Abstract', 'Collective'], a: 2 },
+    { q: '"Can" expresses:', o: ['Permission', 'Ability', 'Obligation', 'Possibility'], a: 1 },
+    { q: 'Synonym of "Brave":', o: ['Timid', 'Courageous', 'Lazy', 'Weak'], a: 1 },
+    { q: 'Antonym of "Ancient":', o: ['Old', 'Modern', 'Historic', 'Traditional'], a: 1 },
+    { q: '"What a beautiful day!" is:', o: ['Declarative', 'Interrogative', 'Imperative', 'Exclamatory'], a: 3 },
+    { q: 'Which modal shows necessity?', o: ['Can', 'May', 'Must', 'Would'], a: 2 },
+    { q: '"Neither...nor" is a:', o: ['Conjunction', 'Preposition', 'Interjection', 'Adverb'], a: 0 },
+    { q: 'Adjective in "She wore a beautiful dress":', o: ['She', 'wore', 'beautiful', 'dress'], a: 2 }
+];
+
+function engQuizLoad() {
+    var q = engQuizData[Math.floor(Math.random() * engQuizData.length)];
+    document.getElementById('engQText').textContent = q.q;
+    document.getElementById('engQFb').textContent = '';
+    var od = document.getElementById('engQOpts');
+    od.innerHTML = '';
+    q.o.forEach(function (opt, idx) {
+        var btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = function () {
+            od.querySelectorAll('button').forEach(function (b) { b.onclick = null; b.classList.add('locked'); });
+            var fb = document.getElementById('engQFb');
+            if (idx === q.a) { engSC++; btn.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { engSW++; btn.classList.add('wrong'); od.children[q.a].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('engSC').textContent = engSC;
+            document.getElementById('engSW').textContent = engSW;
+        };
+        od.appendChild(btn);
+    });
+}
+
+// ============ HINDI VOCAB & QUIZ ============
+var hindiWords = [
+    { w: 'अभिलाषा', m: 'Desire (इच्छा)' },
+    { w: 'अद्भुत', m: 'Amazing (अनोखा)' },
+    { w: 'विद्यालय', m: 'School' },
+    { w: 'परिश्रम', m: 'Hard Work (मेहनत)' },
+    { w: 'साहस', m: 'Courage (बहादुरी)' },
+    { w: 'विज्ञान', m: 'Science' },
+    { w: 'गणित', m: 'Mathematics' },
+    { w: 'पर्यावरण', m: 'Environment' },
+    { w: 'स्वतंत्रता', m: 'Freedom' },
+    { w: 'अनुशासन', m: 'Discipline' },
+    { w: 'सहानुभूति', m: 'Sympathy' },
+    { w: 'प्रयत्न', m: 'Effort' },
+    { w: 'उत्साह', m: 'Enthusiasm' },
+    { w: 'कर्तव्य', m: 'Duty' },
+    { w: 'सफलता', m: 'Success' }
+];
+var hindiFCI = 0;
+
+function hindiFCShow() {
+    document.getElementById('hindiFCF').textContent = hindiWords[hindiFCI].w;
+    document.getElementById('hindiFCB').textContent = hindiWords[hindiFCI].m;
+    document.getElementById('hindiFCCt').textContent = (hindiFCI + 1) + ' / ' + hindiWords.length;
+    document.getElementById('hindiFC').classList.remove('flipped');
+}
+function hindiFCFlip() { document.getElementById('hindiFC').classList.toggle('flipped'); }
+function hindiFCNext() { hindiFCI = (hindiFCI + 1) % hindiWords.length; hindiFCShow(); }
+function hindiFCPrev() { hindiFCI = (hindiFCI - 1 + hindiWords.length) % hindiWords.length; hindiFCShow(); }
+
+var hindiSC = 0, hindiSW = 0;
+var hindiQuizData = [
+    { q: '"सूर्य" का पर्यायवाची?', o: ['चंद्र', 'दिनकर', 'तारा', 'नभ'], a: 1 },
+    { q: '"अंधकार" का विलोम?', o: ['रात', 'प्रकाश', 'काला', 'अँधेरा'], a: 1 },
+    { q: '"राम" कौन सी संज्ञा है?', o: ['जातिवाचक', 'व्यक्तिवाचक', 'भाववाचक', 'समूहवाचक'], a: 1 },
+    { q: '"वह खाना खाता है" — काल?', o: ['भूतकाल', 'वर्तमानकाल', 'भविष्यकाल', 'संदिग्ध'], a: 1 },
+    { q: '"गाय" का लिंग बदलें?', o: ['गायक', 'बैल', 'गौ', 'गोवंश'], a: 1 },
+    { q: '"सुंदर" शब्द क्या है?', o: ['संज्ञा', 'सर्वनाम', 'विशेषण', 'क्रिया'], a: 2 },
+    { q: '"जल" का पर्यायवाची?', o: ['अग्नि', 'पानी', 'वायु', 'धरा'], a: 1 },
+    { q: '"कर्तव्य" means?', o: ['Right', 'Duty', 'Power', 'Money'], a: 1 }
+];
+
+function hindiQuizLoad() {
+    var q = hindiQuizData[Math.floor(Math.random() * hindiQuizData.length)];
+    document.getElementById('hindiQText').textContent = q.q;
+    document.getElementById('hindiQFb').textContent = '';
+    var od = document.getElementById('hindiQOpts');
+    od.innerHTML = '';
+    q.o.forEach(function (opt, idx) {
+        var btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = function () {
+            od.querySelectorAll('button').forEach(function (b) { b.onclick = null; b.classList.add('locked'); });
+            var fb = document.getElementById('hindiQFb');
+            if (idx === q.a) { hindiSC++; btn.classList.add('correct'); fb.textContent = '✅ सही!'; fb.style.color = 'var(--ok)'; }
+            else { hindiSW++; btn.classList.add('wrong'); od.children[q.a].classList.add('correct'); fb.textContent = '❌ गलत!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('hindiSC').textContent = hindiSC;
+            document.getElementById('hindiSW').textContent = hindiSW;
+        };
+        od.appendChild(btn);
+    });
+}
+
+// ============ TAMIL — 40 WORDS! ============
+var tamilWords = [
+    { t: 'பள்ளி', e: 'School' }, { t: 'புத்தகம்', e: 'Book' },
+    { t: 'ஆசிரியர்', e: 'Teacher' }, { t: 'மாணவன்', e: 'Student' },
+    { t: 'கணிதம்', e: 'Mathematics' }, { t: 'அறிவியல்', e: 'Science' },
+    { t: 'வரலாறு', e: 'History' }, { t: 'நீர்', e: 'Water' },
+    { t: 'தீ', e: 'Fire' }, { t: 'காற்று', e: 'Wind/Air' },
+    { t: 'பூமி', e: 'Earth' }, { t: 'வானம்', e: 'Sky' },
+    { t: 'மழை', e: 'Rain' }, { t: 'சூரியன்', e: 'Sun' },
+    { t: 'நிலா', e: 'Moon' }, { t: 'அன்பு', e: 'Love' },
+    { t: 'நன்றி', e: 'Thank you' }, { t: 'வணக்கம்', e: 'Hello/Greetings' },
+    { t: 'வீடு', e: 'House/Home' }, { t: 'உணவு', e: 'Food' },
+    { t: 'மரம்', e: 'Tree' }, { t: 'பூ', e: 'Flower' },
+    { t: 'பழம்', e: 'Fruit' }, { t: 'கடல்', e: 'Sea/Ocean' },
+    { t: 'மலை', e: 'Mountain' }, { t: 'நதி', e: 'River' },
+    { t: 'விலங்கு', e: 'Animal' }, { t: 'பறவை', e: 'Bird' },
+    { t: 'மீன்', e: 'Fish' }, { t: 'பசு', e: 'Cow' },
+    { t: 'நாய்', e: 'Dog' }, { t: 'பூனை', e: 'Cat' },
+    { t: 'குழந்தை', e: 'Child/Baby' }, { t: 'தாய்', e: 'Mother' },
+    { t: 'தந்தை', e: 'Father' }, { t: 'நண்பன்', e: 'Friend' },
+    { t: 'கண்', e: 'Eye' }, { t: 'வாய்', e: 'Mouth' },
+    { t: 'இதயம்', e: 'Heart' }, { t: 'அறிவு', e: 'Knowledge/Wisdom' }
+];
+var tamilFCIndex = 0;
+
+function tamilShowFC() {
+    var w = tamilWords[tamilFCIndex];
+    document.getElementById('tamilFront').textContent = w.t;
+    document.getElementById('tamilBack').textContent = w.e;
+    document.getElementById('tamilCounter').textContent = (tamilFCIndex + 1) + ' / ' + tamilWords.length;
+    document.getElementById('tamilCard').classList.remove('flipped');
+}
+function tamilFlip() { document.getElementById('tamilCard').classList.toggle('flipped'); }
+function tamilNext() { tamilFCIndex = (tamilFCIndex + 1) % tamilWords.length; tamilShowFC(); }
+function tamilPrev() { tamilFCIndex = (tamilFCIndex - 1 + tamilWords.length) % tamilWords.length; tamilShowFC(); }
+
+var tamilQuizC = 0, tamilQuizW = 0;
+var tamilQuizData = [
+    { q: '"பள்ளி" means?', o: ['Hospital', 'School', 'Temple', 'Market'], a: 1 },
+    { q: '"Water" in Tamil?', o: ['தீ', 'காற்று', 'நீர்', 'மண்'], a: 2 },
+    { q: 'Total Tamil letters?', o: ['247', '200', '300', '150'], a: 0 },
+    { q: 'Vowels (உயிர்) count?', o: ['18', '12', '216', '10'], a: 1 },
+    { q: 'Consonants (மெய்) count?', o: ['12', '216', '20', '18'], a: 3 },
+    { q: '"சூரியன்" means?', o: ['Moon', 'Star', 'Sun', 'Cloud'], a: 2 },
+    { q: '"ஆசிரியர்" means?', o: ['Student', 'Teacher', 'Doctor', 'Farmer'], a: 1 },
+    { q: 'ஆய்த எழுத்து is?', o: ['அ', 'க', 'ஃ', 'ங'], a: 2 },
+    { q: '"நன்றி" means?', o: ['Sorry', 'Please', 'Thank you', 'Welcome'], a: 2 },
+    { q: '"அறிவே ஆற்றல்" means?', o: ['Money=power', 'Knowledge=power', 'Unity=strength', 'Health=wealth'], a: 1 },
+    { q: '"வானம்" means?', o: ['Earth', 'Sky', 'Water', 'Fire'], a: 1 },
+    { q: 'Past tense in Tamil?', o: ['எதிர்காலம்', 'நிகழ்காலம்', 'இறந்தகாலம்', 'None'], a: 2 },
+    { q: '"மலை" means?', o: ['River', 'Sea', 'Mountain', 'Forest'], a: 2 },
+    { q: '"பறவை" means?', o: ['Fish', 'Bird', 'Animal', 'Insect'], a: 1 },
+    { q: '"தாய்" means?', o: ['Father', 'Mother', 'Sister', 'Brother'], a: 1 }
+];
+
+function tamilQuizLoad() {
+    var q = tamilQuizData[Math.floor(Math.random() * tamilQuizData.length)];
+    document.getElementById('tamilQText').textContent = q.q;
+    document.getElementById('tamilQFb').textContent = '';
+    var od = document.getElementById('tamilQOpts');
+    od.innerHTML = '';
+    q.o.forEach(function (opt, idx) {
+        var btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.onclick = function () {
+            od.querySelectorAll('button').forEach(function (b) { b.onclick = null; b.classList.add('locked'); });
+            var fb = document.getElementById('tamilQFb');
+            if (idx === q.a) { tamilQuizC++; btn.classList.add('correct'); fb.textContent = '✅ சரி! Correct!'; fb.style.color = 'var(--ok)'; }
+            else { tamilQuizW++; btn.classList.add('wrong'); od.children[q.a].classList.add('correct'); fb.textContent = '❌ தவறு! Wrong!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('tamilScoreC').textContent = tamilQuizC;
+            document.getElementById('tamilScoreW').textContent = tamilQuizW;
+        };
+        od.appendChild(btn);
+    });
+}
+
+// ============ BOOK QUIZ — BY CHAPTER ============
 var quizQuestions = [];
 var quizIndex = 0;
 var quizCorrect = 0;
@@ -429,7 +680,7 @@ var quizWrong = 0;
 
 function goQuizFromLib(bookId) {
     navigate('quiz');
-    setTimeout(function() {
+    setTimeout(function () {
         document.getElementById('quizBookPicker').value = bookId;
         quizBookChanged();
     }, 100);
@@ -439,7 +690,7 @@ function quizBookChanged() {
     var bookId = document.getElementById('quizBookPicker').value;
     var rangeDiv = document.getElementById('quizPageRange');
     if (!bookId) { rangeDiv.style.display = 'none'; return; }
-    var book = allBooks.find(function(b) { return b.id === bookId; });
+    var book = allBooks.find(function (b) { return b.id === bookId; });
     if (!book) { rangeDiv.style.display = 'none'; return; }
     rangeDiv.style.display = 'block';
     document.getElementById('quizFrom').value = 1;
@@ -451,7 +702,7 @@ function quizBookChanged() {
 function quizStart() {
     var bookId = document.getElementById('quizBookPicker').value;
     if (!bookId) { toast('Pick a book!', 'warn'); return; }
-    var book = allBooks.find(function(b) { return b.id === bookId; });
+    var book = allBooks.find(function (b) { return b.id === bookId; });
     if (!book) return;
 
     var from = Math.max(0, parseInt(document.getElementById('quizFrom').value) - 1);
@@ -474,17 +725,17 @@ function quizStart() {
     document.getElementById('quizPlayBox').style.display = 'block';
     document.getElementById('quizResultBox').style.display = 'none';
     showQuizQuestion();
-    toast(quizQuestions.length + ' questions ready!', 'ok');
+    toast(quizQuestions.length + ' questions from pages ' + (from + 1) + '-' + to + '!', 'ok');
 }
 
 function generateQuestions(text, count) {
     var results = [];
-    var sentences = text.split(/[.!?।\n]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 20 && s.length < 250; });
+    var sentences = text.split(/[.!?।\n]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 20 && s.length < 250; });
     if (sentences.length < 3) return [];
 
     var stopWords = 'the and for that this with from have been were they their which about would could should these those also into some than then only very more most such each because between through during without another does will just over under both same many much while since until upon here still even well back down like make made know take come give look find want tell good great first last long little around every never might shall a an is are was in on to of it'.split(' ');
     var freq = {};
-    text.split(/\s+/).forEach(function(w) {
+    text.split(/\s+/).forEach(function (w) {
         var c = w.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
         if (c.length > 3 && stopWords.indexOf(c) === -1) freq[c] = (freq[c] || 0) + 1;
     });
@@ -493,32 +744,33 @@ function generateQuestions(text, count) {
     for (var word in freq) {
         if (freq[word] >= 2 && freq[word] <= 25) keywords.push({ word: word, count: freq[word] });
     }
-    keywords.sort(function(a, b) { return b.count - a.count; });
-    keywords = keywords.slice(0, 50).map(function(k) { return k.word; });
+    keywords.sort(function (a, b) { return b.count - a.count; });
+    keywords = keywords.slice(0, 50).map(function (k) { return k.word; });
 
     var used = {};
 
+    // Fill in blank
     for (var si = 0; si < sentences.length && results.length < Math.ceil(count * 0.5); si++) {
         var sent = sentences[si];
         if (used[sent]) continue;
         var words = sent.split(/\s+/);
         if (words.length < 5) continue;
-        var bestWord = null;
-        var bestIndex = -1;
+        var bestWord = null, bestIndex = -1;
         for (var wi = 1; wi < words.length - 1; wi++) {
             var clean = words[wi].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
             if (keywords.indexOf(clean) !== -1 && clean.length > 4) { bestWord = words[wi]; bestIndex = wi; break; }
         }
         if (!bestWord) continue;
         used[sent] = true;
-        var blanked = words.map(function(w, idx) { return idx === bestIndex ? '________' : w; }).join(' ');
+        var blanked = words.map(function (w, idx) { return idx === bestIndex ? '________' : w; }).join(' ');
         var correctAnswer = bestWord.replace(/[^a-zA-Z\u0900-\u097F\s]/g, '');
-        var wrongAnswers = keywords.filter(function(k) { return k !== correctAnswer.toLowerCase(); }).sort(function() { return Math.random() - 0.5; }).slice(0, 3);
+        var wrongAnswers = keywords.filter(function (k) { return k !== correctAnswer.toLowerCase(); }).sort(function () { return Math.random() - 0.5; }).slice(0, 3);
         if (wrongAnswers.length < 3) continue;
-        var options = [correctAnswer].concat(wrongAnswers).sort(function() { return Math.random() - 0.5; });
+        var options = [correctAnswer].concat(wrongAnswers).sort(function () { return Math.random() - 0.5; });
         results.push({ question: 'Fill in the blank:\n\n"' + blanked + '"', options: options, answer: options.indexOf(correctAnswer), type: 'Fill in Blank', explanation: 'Answer: ' + correctAnswer });
     }
 
+    // True/False
     for (var ti = 0; ti < sentences.length && results.length < Math.ceil(count * 0.8); ti++) {
         var tfSent = sentences[ti];
         if (used[tfSent] || tfSent.length > 160 || Math.random() > 0.5) continue;
@@ -530,7 +782,7 @@ function generateQuestions(text, count) {
             for (var ri = 1; ri < tfWords.length - 1; ri++) {
                 var rc = tfWords[ri].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
                 if (keywords.indexOf(rc) !== -1 && rc.length > 4) {
-                    var replacement = keywords.find(function(k) { return k !== rc; });
+                    var replacement = keywords.find(function (k) { return k !== rc; });
                     if (replacement) { tfWords[ri] = replacement; break; }
                 }
             }
@@ -539,17 +791,18 @@ function generateQuestions(text, count) {
         results.push({ question: 'True or False?\n\n"' + displaySent + '"', options: ['True ✅', 'False ❌'], answer: isTrue ? 0 : 1, type: 'True/False', explanation: isTrue ? 'Correct!' : 'Original: "' + tfSent + '"' });
     }
 
+    // Comprehension
     for (var ci = 0; ci < 5 && results.length < count; ci++) {
         var compSent = sentences[Math.floor(Math.random() * sentences.length)];
         if (used[compSent] || compSent.length > 120) continue;
         used[compSent] = true;
         var preview = compSent.length > 70 ? compSent.substring(0, 70) + '...' : compSent;
         var wrongOpts = ['Not mentioned in text', 'From another chapter', 'Book doesn\'t discuss this'];
-        var compOpts = [preview].concat(wrongOpts).sort(function() { return Math.random() - 0.5; });
+        var compOpts = [preview].concat(wrongOpts).sort(function () { return Math.random() - 0.5; });
         results.push({ question: 'Which is from your book?', options: compOpts, answer: compOpts.indexOf(preview), type: 'Comprehension', explanation: 'Found: "' + compSent + '"' });
     }
 
-    results.sort(function() { return Math.random() - 0.5; });
+    results.sort(function () { return Math.random() - 0.5; });
     return results.slice(0, count);
 }
 
@@ -567,10 +820,10 @@ function showQuizQuestion() {
     document.getElementById('quizNextBtn').style.display = 'none';
     var optDiv = document.getElementById('quizOptionsArea');
     optDiv.innerHTML = '';
-    q.options.forEach(function(opt, idx) {
+    q.options.forEach(function (opt, idx) {
         var btn = document.createElement('button');
         btn.textContent = opt;
-        btn.onclick = function() { pickQuizAnswer(idx, q.answer, btn, q.explanation); };
+        btn.onclick = function () { pickQuizAnswer(idx, q.answer, btn, q.explanation); };
         optDiv.appendChild(btn);
     });
     updateQuizScore();
@@ -578,7 +831,7 @@ function showQuizQuestion() {
 
 function pickQuizAnswer(picked, correct, clickedBtn, explanation) {
     var buttons = document.getElementById('quizOptionsArea').querySelectorAll('button');
-    buttons.forEach(function(b) { b.onclick = null; b.classList.add('locked'); });
+    buttons.forEach(function (b) { b.onclick = null; b.classList.add('locked'); });
     var fb = document.getElementById('quizFeedback');
     if (picked === correct) {
         quizCorrect++;
@@ -632,13 +885,13 @@ function quizReset() {
     document.getElementById('quizResultBox').style.display = 'none';
 }
 
-// ---- FLASHCARDS ----
+// ============ BOOK FLASHCARDS ============
 var fcCards = [];
 var fcIndex = 0;
 
 function goFCFromLib(bookId) {
     navigate('flashcards');
-    setTimeout(function() {
+    setTimeout(function () {
         document.getElementById('fcBookPicker').value = bookId;
         fcLoadBook(bookId);
     }, 100);
@@ -646,25 +899,25 @@ function goFCFromLib(bookId) {
 
 function fcLoadBook(bookId) {
     if (!bookId) return;
-    var book = allBooks.find(function(b) { return b.id === bookId; });
+    var book = allBooks.find(function (b) { return b.id === bookId; });
     if (!book || !book.fullText || book.fullText.length < 80) {
         document.getElementById('fcContent').innerHTML = '<p class="placeholder">⚠️ Not enough text</p>';
         document.getElementById('fcCardArea').style.display = 'none';
         return;
     }
     fcCards = [];
-    var sents = book.fullText.split(/[.!?।\n]+/).filter(function(s) { return s.trim().length > 15 && s.trim().length < 200; });
+    var sents = book.fullText.split(/[.!?।\n]+/).filter(function (s) { return s.trim().length > 15 && s.trim().length < 200; });
     var freq = {};
-    book.fullText.split(/\s+/).forEach(function(w) {
+    book.fullText.split(/\s+/).forEach(function (w) {
         var c = w.toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
         if (c.length > 4) freq[c] = (freq[c] || 0) + 1;
     });
     var kws = [];
     for (var w in freq) { if (freq[w] >= 2 && freq[w] <= 15) kws.push(w); }
-    kws.sort(function(a, b) { return (freq[b] || 0) - (freq[a] || 0); });
+    kws.sort(function (a, b) { return (freq[b] || 0) - (freq[a] || 0); });
     kws = kws.slice(0, 25);
     var usedKW = {};
-    sents.forEach(function(s) {
+    sents.forEach(function (s) {
         if (fcCards.length >= 20) return;
         var trimmed = s.trim();
         for (var ki = 0; ki < kws.length; ki++) {
@@ -696,89 +949,17 @@ function fcShowCard() {
     document.getElementById('fcCounter').textContent = (fcIndex + 1) + ' / ' + fcCards.length;
     document.getElementById('fcTheCard').classList.remove('flipped');
 }
-
 function fcFlip() { document.getElementById('fcTheCard').classList.toggle('flipped'); }
 function fcGoNext() { fcIndex = (fcIndex + 1) % fcCards.length; fcShowCard(); }
 function fcGoPrev() { fcIndex = (fcIndex - 1 + fcCards.length) % fcCards.length; fcShowCard(); }
 
-// ---- TAMIL ----
-var tamilWords = [
-    {t:'பள்ளி',e:'School'},{t:'புத்தகம்',e:'Book'},{t:'ஆசிரியர்',e:'Teacher'},
-    {t:'மாணவன்',e:'Student'},{t:'கணிதம்',e:'Mathematics'},{t:'அறிவியல்',e:'Science'},
-    {t:'வரலாறு',e:'History'},{t:'நீர்',e:'Water'},{t:'தீ',e:'Fire'},
-    {t:'காற்று',e:'Wind'},{t:'பூமி',e:'Earth'},{t:'வானம்',e:'Sky'},
-    {t:'மழை',e:'Rain'},{t:'சூரியன்',e:'Sun'},{t:'நிலா',e:'Moon'},
-    {t:'அன்பு',e:'Love'},{t:'நன்றி',e:'Thank you'},{t:'வணக்கம்',e:'Hello'},
-    {t:'வீடு',e:'House'},{t:'உணவு',e:'Food'},{t:'மரம்',e:'Tree'},
-    {t:'பூ',e:'Flower'},{t:'பழம்',e:'Fruit'},{t:'கடல்',e:'Sea'},{t:'மலை',e:'Mountain'}
-];
-var tamilFCIndex = 0;
-
-function tamilShowFC() {
-    var w = tamilWords[tamilFCIndex];
-    document.getElementById('tamilFront').textContent = w.t;
-    document.getElementById('tamilBack').textContent = w.e;
-    document.getElementById('tamilCounter').textContent = (tamilFCIndex + 1) + ' / ' + tamilWords.length;
-    document.getElementById('tamilCard').classList.remove('flipped');
-}
-
-function tamilFlip() { document.getElementById('tamilCard').classList.toggle('flipped'); }
-function tamilNext() { tamilFCIndex = (tamilFCIndex + 1) % tamilWords.length; tamilShowFC(); }
-function tamilPrev() { tamilFCIndex = (tamilFCIndex - 1 + tamilWords.length) % tamilWords.length; tamilShowFC(); }
-
-var tamilQuizC = 0;
-var tamilQuizW = 0;
-var tamilQuizData = [
-    {q:'"பள்ளி" means?',o:['Hospital','School','Temple','Market'],a:1},
-    {q:'"Water" in Tamil?',o:['தீ','காற்று','நீர்','மண்'],a:2},
-    {q:'Tamil letters total?',o:['247','200','300','150'],a:0},
-    {q:'Vowels count?',o:['18','12','216','10'],a:1},
-    {q:'Consonants count?',o:['12','216','20','18'],a:3},
-    {q:'"சூரியன்" means?',o:['Moon','Star','Sun','Cloud'],a:2},
-    {q:'"ஆசிரியர்" means?',o:['Student','Teacher','Doctor','Farmer'],a:1},
-    {q:'ஆய்த எழுத்து?',o:['அ','க','ஃ','ங'],a:2},
-    {q:'"நன்றி" means?',o:['Sorry','Please','Thank you','Welcome'],a:2},
-    {q:'"அறிவே ஆற்றல்" means?',o:['Money=power','Knowledge=power','Unity=strength','Health=wealth'],a:1}
-];
-
-function tamilQuizLoad() {
-    var q = tamilQuizData[Math.floor(Math.random() * tamilQuizData.length)];
-    document.getElementById('tamilQText').textContent = q.q;
-    document.getElementById('tamilQFb').textContent = '';
-    var optDiv = document.getElementById('tamilQOpts');
-    optDiv.innerHTML = '';
-    q.o.forEach(function(opt, idx) {
-        var btn = document.createElement('button');
-        btn.textContent = opt;
-        btn.onclick = function() {
-            optDiv.querySelectorAll('button').forEach(function(b) { b.onclick = null; b.classList.add('locked'); });
-            var fb = document.getElementById('tamilQFb');
-            if (idx === q.a) {
-                tamilQuizC++;
-                btn.classList.add('correct');
-                fb.textContent = '✅ சரி! Correct!';
-                fb.style.color = 'var(--ok)';
-            } else {
-                tamilQuizW++;
-                btn.classList.add('wrong');
-                optDiv.children[q.a].classList.add('correct');
-                fb.textContent = '❌ தவறு! Wrong!';
-                fb.style.color = 'var(--e)';
-            }
-            document.getElementById('tamilScoreC').textContent = tamilQuizC;
-            document.getElementById('tamilScoreW').textContent = tamilQuizW;
-        };
-        optDiv.appendChild(btn);
-    });
-}
-
-// ---- AI HELPER ----
+// ============ AI HELPER ============
 var aiSelectedBookId = null;
 
 function aiSelectBook(bookId) {
     aiSelectedBookId = bookId;
     if (bookId) {
-        var book = allBooks.find(function(b) { return b.id === bookId; });
+        var book = allBooks.find(function (b) { return b.id === bookId; });
         if (book) addChatMessage('bot', '📘 Loaded "' + book.title + '". Ask me anything!');
     }
 }
@@ -795,28 +976,41 @@ function aiSendMessage() {
         return;
     }
 
-    var book = allBooks.find(function(b) { return b.id === aiSelectedBookId; });
+    var book = allBooks.find(function (b) { return b.id === aiSelectedBookId; });
     if (!book) { addChatMessage('bot', '❌ Book not found!'); return; }
 
-    var queryWords = query.toLowerCase().split(/\s+/).filter(function(w) { return w.length > 2; });
-    var sentences = book.fullText.split(/[.!?।\n]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 15; });
+    // Check for page request
+    var pageMatch = query.toLowerCase().match(/page\s*(\d+)/);
+    if (pageMatch) {
+        var pg = parseInt(pageMatch[1]) - 1;
+        if (pg >= 0 && pg < book.pageTexts.length) {
+            var pageText = book.pageTexts[pg] || 'No readable text on this page.';
+            var pagePreview = pageText.length > 300 ? pageText.substring(0, 300) + '...' : pageText;
+            addChatMessage('bot', '📄 Page ' + (pg + 1) + ':\n\n' + pagePreview);
+            return;
+        }
+    }
 
-    var scored = sentences.map(function(s) {
+    // Search book
+    var queryWords = query.toLowerCase().split(/\s+/).filter(function (w) { return w.length > 2; });
+    var sentences = book.fullText.split(/[.!?।\n]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 15; });
+
+    var scored = sentences.map(function (s) {
         var lower = s.toLowerCase();
         var score = 0;
-        queryWords.forEach(function(w) { if (lower.indexOf(w) !== -1) score += 2; });
+        queryWords.forEach(function (w) { if (lower.indexOf(w) !== -1) score += 2; });
         return { text: s, score: score };
-    }).filter(function(x) { return x.score > 0; }).sort(function(a, b) { return b.score - a.score; });
+    }).filter(function (x) { return x.score > 0; }).sort(function (a, b) { return b.score - a.score; });
 
     if (scored.length > 0) {
         var response = '📖 Found in your book:\n\n';
-        scored.slice(0, 3).forEach(function(item, i) {
+        scored.slice(0, 3).forEach(function (item, i) {
             var display = item.text.length > 200 ? item.text.substring(0, 200) + '...' : item.text;
-            response += '📌 Match ' + (i+1) + ': ' + display + '\n\n';
+            response += '📌 Match ' + (i + 1) + ': ' + display + '\n\n';
         });
         addChatMessage('bot', response);
     } else {
-        addChatMessage('bot', '🤔 Could not find "' + query + '" in your book. Try different keywords!');
+        addChatMessage('bot', '🤔 Could not find "' + query + '" in your book. Try different keywords or ask about a specific page!');
     }
 }
 
@@ -831,7 +1025,7 @@ function addChatMessage(who, message) {
     chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-// ---- NOTES ----
+// ============ NOTES ============
 var editingNoteId = null;
 
 function noteStartNew() {
@@ -850,22 +1044,27 @@ async function noteSave() {
     var body = document.getElementById('noteEditBody').value.trim();
     if (!title || !body) { toast('Enter title and content!', 'warn'); return; }
     if (editingNoteId) {
-        var existing = allNotes.find(function(n) { return n.id === editingNoteId; });
-        if (existing) { existing.title = title; existing.body = body; await dbSave('notes', existing); }
+        var existing = allNotes.find(function (n) { return n.id === editingNoteId; });
+        if (existing) {
+            existing.title = title;
+            existing.body = body;
+            existing.modified = new Date().toLocaleDateString();
+            await dbSave('notes', existing);
+        }
     } else {
-        var note = { id: 'note_' + Date.now(), title: title, body: body, date: new Date().toLocaleDateString() };
+        var note = { id: 'note_' + Date.now(), title: title, body: body, date: new Date().toLocaleDateString(), modified: new Date().toLocaleDateString() };
         allNotes.push(note);
         await dbSave('notes', note);
     }
     noteCancel();
     renderNotes();
-    toast('Saved!', 'ok');
+    toast('Note saved!', 'ok');
 }
 
 function renderNotes() {
     var container = document.getElementById('noteListArea');
     if (allNotes.length === 0) {
-        container.innerHTML = '<p class="placeholder">📝 No notes yet</p>';
+        container.innerHTML = '<p class="placeholder">📝 No notes yet. Click "+ New Note" to start!</p>';
         return;
     }
     var html = '';
@@ -874,13 +1073,14 @@ function renderNotes() {
         html += '<div class="notecard" onclick="noteEdit(\'' + n.id + '\')">' +
             '<button class="notedel" onclick="event.stopPropagation();noteDelete(\'' + n.id + '\')">✕</button>' +
             '<h4>' + n.title + '</h4>' +
-            '<p>' + n.body.substring(0, 80) + '</p></div>';
+            '<p>' + n.body.substring(0, 100) + (n.body.length > 100 ? '...' : '') + '</p>' +
+            '<p class="small">📅 ' + (n.modified || n.date) + '</p></div>';
     }
     container.innerHTML = html;
 }
 
 function noteEdit(id) {
-    var note = allNotes.find(function(n) { return n.id === id; });
+    var note = allNotes.find(function (n) { return n.id === id; });
     if (!note) return;
     editingNoteId = id;
     document.getElementById('noteEditArea').style.display = 'block';
@@ -889,13 +1089,14 @@ function noteEdit(id) {
 }
 
 async function noteDelete(id) {
-    if (!confirm('Delete?')) return;
+    if (!confirm('Delete this note?')) return;
     await dbRemove('notes', id);
-    allNotes = allNotes.filter(function(n) { return n.id !== id; });
+    allNotes = allNotes.filter(function (n) { return n.id !== id; });
     renderNotes();
+    toast('Deleted!', 'info');
 }
 
-// ---- TIMER ----
+// ============ TIMER ============
 var timerInterval = null;
 var timerSecondsLeft = 25 * 60;
 var timerTotalSeconds = 25 * 60;
@@ -908,25 +1109,42 @@ function timerUpdateDisplay() {
 
 function timerStart() {
     if (timerInterval) return;
-    timerInterval = setInterval(function() {
-        if (timerSecondsLeft <= 0) { clearInterval(timerInterval); timerInterval = null; toast('⏰ Time up!', 'ok'); return; }
+    timerInterval = setInterval(function () {
+        if (timerSecondsLeft <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            toast('⏰ Time is up! Great session!', 'ok');
+            return;
+        }
         timerSecondsLeft--;
         timerUpdateDisplay();
     }, 1000);
 }
 
-function timerPause() { clearInterval(timerInterval); timerInterval = null; }
+function timerPause() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+}
 
-function timerReset() { timerPause(); timerSecondsLeft = timerTotalSeconds; timerUpdateDisplay(); }
+function timerReset() {
+    timerPause();
+    timerSecondsLeft = timerTotalSeconds;
+    timerUpdateDisplay();
+}
 
-function timerSetMinutes(mins) { timerPause(); timerSecondsLeft = mins * 60; timerTotalSeconds = mins * 60; timerUpdateDisplay(); }
+function timerSetMinutes(mins) {
+    timerPause();
+    timerSecondsLeft = mins * 60;
+    timerTotalSeconds = mins * 60;
+    timerUpdateDisplay();
+}
 
-// ---- DRAG DROP ----
-document.addEventListener('DOMContentLoaded', function() {
+// ============ DRAG DROP ============
+document.addEventListener('DOMContentLoaded', function () {
     var picker = document.getElementById('filePicker');
     if (picker) {
-        picker.addEventListener('dragover', function(e) { e.preventDefault(); });
-        picker.addEventListener('drop', function(e) {
+        picker.addEventListener('dragover', function (e) { e.preventDefault(); });
+        picker.addEventListener('drop', function (e) {
             e.preventDefault();
             var file = e.dataTransfer.files[0];
             if (file && file.type === 'application/pdf') {
@@ -936,13 +1154,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('pickedFileName').textContent = file.name;
                 document.getElementById('pickedFileSize').textContent = (file.size / 1048576).toFixed(1) + ' MB';
                 document.getElementById('uploadTitle').value = file.name.replace('.pdf', '').replace(/[_-]+/g, ' ');
+                toast('File dropped!', 'info');
+            } else {
+                toast('Please drop a PDF file!', 'err');
             }
         });
     }
 });
 
-// ---- INIT ----
-window.onload = async function() {
+// ============ INIT ============
+window.onload = async function () {
     console.log('StudyBuddy starting...');
 
     // Name greeting
@@ -963,9 +1184,12 @@ window.onload = async function() {
     var quotes = [
         '"Education is the most powerful weapon." — Mandela',
         '"Practice makes perfect!" 💪',
-        '"Believe you can and you\'re halfway there."',
+        '"Believe you can and you\'re halfway there." — Roosevelt',
         '"Knowledge is Power — அறிவே ஆற்றல்" 🟢',
-        '"The expert was once a beginner."'
+        '"The expert was once a beginner."',
+        '"कल करे सो आज कर — Don\'t delay" 📝',
+        '"Success = Small efforts repeated daily"',
+        '"Reading is exercise for the mind" 📖'
     ];
     var quoteEl = document.getElementById('homeQuote');
     if (quoteEl) quoteEl.textContent = quotes[new Date().getDate() % quotes.length];
@@ -973,9 +1197,14 @@ window.onload = async function() {
     // Timer
     timerUpdateDisplay();
 
-    // Tamil
+    // Subject flashcards & quizzes
+    engFCShow();
+    engQuizLoad();
+    hindiFCShow();
+    hindiQuizLoad();
     tamilShowFC();
     tamilQuizLoad();
+    mathQuizLoad();
 
     // Database
     try {
@@ -983,10 +1212,10 @@ window.onload = async function() {
         allBooks = await dbGetAll('books');
         allNotes = await dbGetAll('notes');
         console.log('Loaded ' + allBooks.length + ' books, ' + allNotes.length + ' notes');
-        toast('StudyBuddy ready! ' + allBooks.length + ' books.', 'ok');
+        toast('StudyBuddy ready! ' + allBooks.length + ' books loaded.', 'ok');
     } catch (err) {
-        console.error('DB error:', err);
-        toast('Database error. Refresh page.', 'err');
+        console.error('Database error:', err);
+        toast('Database error. Try refreshing.', 'err');
     }
 
     updateDashboard();
