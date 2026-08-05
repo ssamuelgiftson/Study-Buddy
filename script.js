@@ -1275,7 +1275,7 @@ async function callGemini(question, bookContext, bookTitle) {
         }
     };
 
-    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + aiApiKey;
+    var url = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + aiApiKey;
 
     var response = await fetch(url, {
         method: 'POST',
