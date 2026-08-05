@@ -1129,8 +1129,8 @@ function saveApiKey() {
         toast('Please paste your API key!', 'warn');
         return;
     }
-    if (!key.startsWith('AIza')) {
-        toast('That doesn\'t look like a valid Gemini key. It should start with "AIza"', 'warn');
+    if (key.length < 20) {
+        toast('That key looks too short. Please paste the full API key.', 'warn');
         return;
     }
     aiApiKey = key;
