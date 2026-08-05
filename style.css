@@ -1247,3 +1247,159 @@ footer {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+/* ============ PRONUNCIATION TOGGLE ============ */
+.pron-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    justify-content: center;
+}
+
+.pron-btn {
+    padding: 8px 18px;
+    border: 2px solid var(--bg2);
+    background: var(--bg);
+    color: var(--txt2);
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.pron-btn:hover {
+    border-color: var(--p);
+}
+
+.pron-btn.active {
+    background: linear-gradient(135deg, var(--p), var(--a));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
+}
+
+.speak-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    font-size: 0.78rem !important;
+}
+
+.speak-btn:hover {
+    transform: scale(1.05) !important;
+}
+
+/* ============ DICTIONARY ============ */
+.dict-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dict-controls span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--p);
+}
+
+.dict-search-wrap {
+    margin-bottom: 12px;
+}
+
+.dict-list {
+    display: grid;
+    gap: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.dict-word {
+    background: var(--bg);
+    border-radius: var(--rd2);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: 0.2s;
+    border-left: 4px solid var(--p);
+}
+
+.dict-word:hover {
+    transform: translateX(4px);
+    border-left-color: var(--a);
+}
+
+.dict-word-text {
+    flex: 1;
+}
+
+.dict-word-text h4 {
+    font-size: 0.92rem;
+    color: var(--txt);
+    margin-bottom: 2px;
+}
+
+.dict-word-text p {
+    font-size: 0.78rem;
+    color: var(--txt2);
+}
+
+.dict-word-date {
+    font-size: 0.65rem;
+    color: var(--txt3);
+}
+
+.dict-word-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.dict-speak-btn {
+    background: var(--p);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dict-speak-btn:hover {
+    background: var(--a);
+    transform: scale(1.1);
+}
+
+.dict-remove-btn {
+    background: var(--e);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dict-remove-btn:hover {
+    opacity: 0.8;
+}
+
+/* Speaking animation */
+@keyframes speakPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.speaking {
+    animation: speakPulse 0.5s ease 3;
+}
