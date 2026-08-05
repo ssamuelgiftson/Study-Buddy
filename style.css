@@ -1403,3 +1403,87 @@ footer {
 .speaking {
     animation: speakPulse 0.5s ease 3;
 }
+/* ============ AI HELPER EXTRAS ============ */
+.quick-prompts {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    padding: 0 4px;
+}
+
+.qprompt {
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--bg2);
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 0.72rem;
+    color: var(--txt2);
+    transition: 0.2s;
+    font-weight: 500;
+}
+
+.qprompt:hover {
+    background: linear-gradient(135deg, var(--p), var(--a));
+    color: white;
+    border-color: transparent;
+    transform: translateY(-1px);
+}
+
+/* Typing indicator */
+.ai-typing {
+    padding: 0 16px;
+    margin-bottom: 8px;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    padding: 4px 0;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    background: var(--p);
+    border-radius: 50%;
+    animation: typingBounce 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Chat bubble formatting */
+.chatbubble ul, .chatbubble ol {
+    margin: 6px 0 6px 18px;
+}
+
+.chatbubble li {
+    margin: 3px 0;
+    font-size: 0.82rem;
+}
+
+.chatbubble strong, .chatbubble b {
+    color: var(--p);
+}
+
+/* API Key box link */
+.infobox a {
+    color: var(--p);
+    text-decoration: none;
+}
+
+.infobox a:hover {
+    text-decoration: underline;
+}
