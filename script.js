@@ -114,7 +114,7 @@ function updateDashboard() {
 }
 
 function subjectEmoji(s) {
-    var map = { math: '📐', english: '📖', hindi: '📝', tamil: '🟢', science: '🔬', social: '🌍', computer: '💻', other: '📦' };
+    var map = { math: '📐', english: '📖', hindi: '📝', tamil: '📗', science: '🔬', social: '🌍', computer: '💻', other: '📦' };
     return map[s] || '📄';
 }
 
