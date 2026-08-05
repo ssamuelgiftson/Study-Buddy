@@ -223,19 +223,43 @@
         </div>
     </div>
 
-    <div class="infobox">
+       <div class="infobox">
         <h3>🔤 Vocabulary Builder</h3>
+
+        <!-- Pronunciation Toggle -->
+        <div class="pron-toggle">
+            <button class="pron-btn active" id="pronUSBtn" onclick="setPronunciation('US')">🇺🇸 American</button>
+            <button class="pron-btn" id="pronUKBtn" onclick="setPronunciation('UK')">🇬🇧 British</button>
+        </div>
+
         <div class="fcwrap">
             <div class="flashcard" id="engFC" onclick="engFCFlip()">
                 <div class="fcfront engfront" id="engFCF">Word</div>
                 <div class="fcback engback" id="engFCB">Meaning</div>
             </div>
         </div>
-        <p class="small center-text">👆 Tap to see meaning</p>
+        <p class="small center-text">👆 Tap card to flip | Click 🔊 to hear pronunciation</p>
         <div class="fcnav">
             <button class="btn" onclick="engFCPrev()">⬅️</button>
+            <button class="btn speak-btn" onclick="speakCurrentWord()">🔊 Speak</button>
             <span id="engFCCt">1 / 15</span>
+            <button class="btn speak-btn" onclick="markAsLearned()">✅ Learned</button>
             <button class="btn" onclick="engFCNext()">➡️</button>
+        </div>
+    </div>
+
+    <!-- DICTIONARY OF LEARNED WORDS -->
+    <div class="infobox">
+        <h3>📖 My Dictionary (Learned Words)</h3>
+        <div class="dict-controls">
+            <span id="dictCount">0 words learned</span>
+            <button class="btn small" onclick="clearDictionary()">🗑️ Clear All</button>
+        </div>
+        <div id="dictSearch" class="dict-search-wrap">
+            <input type="text" id="dictSearchInput" class="forminput" placeholder="🔍 Search your dictionary..." oninput="filterDictionary(this.value)">
+        </div>
+        <div id="dictionaryList" class="dict-list">
+            <p class="placeholder">No words learned yet. Flip cards and click ✅ Learned!</p>
         </div>
     </div>
 
