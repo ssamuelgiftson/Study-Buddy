@@ -1117,64 +1117,187 @@ function fcFlip() { document.getElementById('fcTheCard').classList.toggle('flipp
 function fcGoNext() { fcIndex = (fcIndex + 1) % fcCards.length; fcShowCard(); }
 function fcGoPrev() { fcIndex = (fcIndex - 1 + fcCards.length) % fcCards.length; fcShowCard(); }
 
-// ============ AI HELPER ============
-var aiSelectedBookId = null;
 
-function aiSelectBook(bookId) {
-    aiSelectedBookId = bookId;
-    if (bookId) {
-        var book = allBooks.find(function (b) { return b.id === bookId; });
-        if (book) addChatMessage('bot', '📘 Loaded "' + book.title + '". Ask me anything!');
+// ============ AI HELPER (GEMINI) ============
+var aiSelectedBookId = null;
+var aiApiKey = localStorage.getItem('sbGeminiKey') || '';
+var aiBookContext = '';
+
+function saveApiKey() {
+    var key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) {
+        toast('Please paste your API key!', 'warn');
+        return;
+    }
+    if (!key.startsWith('AIza')) {
+        toast('That doesn\'t look like a valid Gemini key. It should start with "AIza"', 'warn');
+        return;
+    }
+    aiApiKey = key;
+    localStorage.setItem('sbGeminiKey', key);
+    document.getElementById('apiKeyBox').style.display = 'none';
+    toast('API key saved! AI is ready! 🤖', 'ok');
+    addChatMessage('bot', '✅ API key saved! I\'m ready to help you study. Select a book and ask me anything!');
+}
+
+function checkApiKey() {
+    if (aiApiKey) {
+        document.getElementById('apiKeyBox').style.display = 'none';
     }
 }
 
-function aiSendMessage() {
+function aiSelectBook(bookId) {
+    aiSelectedBookId = bookId;
+    aiBookContext = '';
+
+    if (bookId) {
+        var book = allBooks.find(function (b) { return b.id === bookId; });
+        if (book) {
+            // Get first ~4000 chars as context (fits in Gemini's context)
+            aiBookContext = book.fullText ? book.fullText.substring(0, 4000) : '';
+            addChatMessage('bot', '📘 Loaded "' + book.title + '" (' + book.pages + ' pages). I can now answer questions about this book!\n\nTry the quick buttons below or type your question.');
+        }
+    }
+}
+
+function sendQuickPrompt(prompt) {
+    if (!aiSelectedBookId) {
+        toast('Select a book first!', 'warn');
+        return;
+    }
+    document.getElementById('chatInput').value = prompt;
+    aiSendMessage();
+}
+
+async function aiSendMessage() {
     var input = document.getElementById('chatInput');
     var query = input.value.trim();
     if (!query) return;
     input.value = '';
+
     addChatMessage('user', query);
 
+    // Check if API key exists
+    if (!aiApiKey) {
+        addChatMessage('bot', '⚠️ Please set up your API key first! Scroll up to the setup box.');
+        document.getElementById('apiKeyBox').style.display = 'block';
+        return;
+    }
+
+    // Check if book is selected
     if (!aiSelectedBookId) {
-        addChatMessage('bot', '⚠️ Please select a book first!');
+        addChatMessage('bot', '⚠️ Please select a book first using the dropdown above!');
         return;
     }
 
     var book = allBooks.find(function (b) { return b.id === aiSelectedBookId; });
-    if (!book) { addChatMessage('bot', '❌ Book not found!'); return; }
+    if (!book) {
+        addChatMessage('bot', '❌ Book not found!');
+        return;
+    }
 
-    // Check for page request
+    // Check for page-specific request
+    var pageContext = '';
     var pageMatch = query.toLowerCase().match(/page\s*(\d+)/);
-    if (pageMatch) {
+    var pageRangeMatch = query.toLowerCase().match(/page\s*(\d+)\s*(?:to|-)\s*(\d+)/);
+
+    if (pageRangeMatch) {
+        var fromPg = parseInt(pageRangeMatch[1]) - 1;
+        var toPg = parseInt(pageRangeMatch[2]);
+        if (fromPg >= 0 && toPg <= book.pages) {
+            pageContext = book.pageTexts.slice(fromPg, toPg).join('\n\n');
+            pageContext = pageContext.substring(0, 5000);
+        }
+    } else if (pageMatch) {
         var pg = parseInt(pageMatch[1]) - 1;
         if (pg >= 0 && pg < book.pageTexts.length) {
-            var pageText = book.pageTexts[pg] || 'No readable text on this page.';
-            var pagePreview = pageText.length > 300 ? pageText.substring(0, 300) + '...' : pageText;
-            addChatMessage('bot', '📄 Page ' + (pg + 1) + ':\n\n' + pagePreview);
-            return;
+            pageContext = book.pageTexts[pg] || '';
         }
     }
 
-    // Search book
-    var queryWords = query.toLowerCase().split(/\s+/).filter(function (w) { return w.length > 2; });
-    var sentences = book.fullText.split(/[.!?।\n]+/).map(function (s) { return s.trim(); }).filter(function (s) { return s.length > 15; });
+    // Build the context to send to Gemini
+    var contextToUse = pageContext || aiBookContext;
+    if (!contextToUse || contextToUse.trim().length < 20) {
+        contextToUse = book.fullText ? book.fullText.substring(0, 4000) : 'No text available from this book.';
+    }
 
-    var scored = sentences.map(function (s) {
-        var lower = s.toLowerCase();
-        var score = 0;
-        queryWords.forEach(function (w) { if (lower.indexOf(w) !== -1) score += 2; });
-        return { text: s, score: score };
-    }).filter(function (x) { return x.score > 0; }).sort(function (a, b) { return b.score - a.score; });
+    // Show typing indicator
+    document.getElementById('aiTyping').style.display = 'block';
+    scrollChatDown();
 
-    if (scored.length > 0) {
-        var response = '📖 Found in your book:\n\n';
-        scored.slice(0, 3).forEach(function (item, i) {
-            var display = item.text.length > 200 ? item.text.substring(0, 200) + '...' : item.text;
-            response += '📌 Match ' + (i + 1) + ': ' + display + '\n\n';
-        });
+    try {
+        var response = await callGemini(query, contextToUse, book.title);
+        document.getElementById('aiTyping').style.display = 'none';
         addChatMessage('bot', response);
+    } catch (err) {
+        document.getElementById('aiTyping').style.display = 'none';
+        console.error('Gemini error:', err);
+
+        if (err.message && err.message.indexOf('API_KEY_INVALID') !== -1) {
+            addChatMessage('bot', '❌ Invalid API key. Please check your key and try again.');
+            localStorage.removeItem('sbGeminiKey');
+            aiApiKey = '';
+            document.getElementById('apiKeyBox').style.display = 'block';
+        } else if (err.message && err.message.indexOf('QUOTA') !== -1) {
+            addChatMessage('bot', '⚠️ API limit reached. Wait a minute and try again. (Free tier: 15 requests/minute)');
+        } else {
+            addChatMessage('bot', '❌ Error: ' + (err.message || 'Something went wrong. Try again!'));
+        }
+    }
+}
+
+async function callGemini(question, bookContext, bookTitle) {
+    var systemPrompt = 'You are StudyBuddy AI, a helpful study assistant for a Grade 8 CBSE student named ' +
+        (localStorage.getItem('sbName') || 'Samuel') + '. ' +
+        'You are helping them study from their textbook: "' + bookTitle + '". ' +
+        'Rules:\n' +
+        '1. Answer based on the book content provided below.\n' +
+        '2. Use simple language a 13-year-old can understand.\n' +
+        '3. Use bullet points, numbering, and formatting for clarity.\n' +
+        '4. If creating quiz questions, include answers.\n' +
+        '5. If summarizing, highlight key points clearly.\n' +
+        '6. If the content doesn\'t have enough info, say so honestly.\n' +
+        '7. Be encouraging and supportive!\n' +
+        '8. Keep responses focused and not too long.\n\n' +
+        'BOOK CONTENT:\n' + bookContext;
+
+    var requestBody = {
+        contents: [
+            {
+                parts: [
+                    { text: systemPrompt + '\n\nStudent\'s question: ' + question }
+                ]
+            }
+        ],
+        generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024
+        }
+    };
+
+    var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + aiApiKey;
+
+    var response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        var errorData = await response.json().catch(function () { return {}; });
+        var errorMsg = 'API error';
+        if (errorData.error && errorData.error.message) {
+            errorMsg = errorData.error.message;
+        }
+        throw new Error(errorMsg);
+    }
+
+    var data = await response.json();
+
+    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+        return data.candidates[0].content.parts[0].text;
     } else {
-        addChatMessage('bot', '🤔 Could not find "' + query + '" in your book. Try different keywords or ask about a specific page!');
+        throw new Error('No response from AI. Try again!');
     }
 }
 
@@ -1183,12 +1306,29 @@ function addChatMessage(who, message) {
     var div = document.createElement('div');
     div.className = 'chatmsg ' + who;
     var avatar = who === 'bot' ? '🤖' : '👤';
-    var escaped = message.replace(/</g, '&lt;').replace(/\n/g, '<br>');
-    div.innerHTML = '<div class="chatavatar">' + avatar + '</div><div class="chatbubble">' + escaped + '</div>';
+
+    // Format the message (convert markdown-like to HTML)
+    var formatted = message
+        .replace(/</g, '&lt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^## (.+)$/gm, '<h4 style="color:var(--p);margin:8px 0 4px;">$1</h4>')
+        .replace(/^### (.+)$/gm, '<h4 style="color:var(--p);margin:6px 0 3px;">$1</h4>')
+        .replace(/^- (.+)$/gm, '• $1')
+        .replace(/^(\d+)\. (.+)$/gm, '<b>$1.</b> $2')
+        .replace(/\n/g, '<br>');
+
+    div.innerHTML = '<div class="chatavatar">' + avatar + '</div><div class="chatbubble">' + formatted + '</div>';
     chatArea.appendChild(div);
-    chatArea.scrollTop = chatArea.scrollHeight;
+    scrollChatDown();
 }
 
+function scrollChatDown() {
+    var chatArea = document.getElementById('chatArea');
+    setTimeout(function () {
+        chatArea.scrollTop = chatArea.scrollHeight;
+    }, 100);
+}
 // ============ NOTES ============
 var editingNoteId = null;
 
@@ -1382,6 +1522,7 @@ window.onload = async function () {
         console.error('Database error:', err);
         toast('Database error. Try refreshing.', 'err');
     }
-
+    // Check AI API key
+    checkApiKey();
     updateDashboard();
 };
