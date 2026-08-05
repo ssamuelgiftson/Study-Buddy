@@ -1275,6 +1275,63 @@ async function callGemini(question, bookContext, bookTitle) {
         }
     };
 
+    // Try multiple models in order
+    var models = [
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key='
+    ];
+
+    var lastError = '';
+
+    for (var i = 0; i < models.length; i++) {
+        try {
+            var url = models[i] + aiApiKey;
+            var response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (response.ok) {
+                var data = await response.json();
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                    return data.candidates[0].content.parts[0].text;
+                }
+            }
+
+            var errorData = await response.json().catch(function () { return {}; });
+
+            // If quota exceeded, try next model
+            if (errorData.error && errorData.error.message) {
+                lastError = errorData.error.message;
+                if (lastError.indexOf('not found') !== -1 || lastError.indexOf('not supported') !== -1) {
+                    continue; // Try next model
+                }
+                if (lastError.indexOf('QUOTA') !== -1 || lastError.indexOf('quota') !== -1 || lastError.indexOf('exceeded') !== -1) {
+                    continue; // Try next model
+                }
+                // Other error — stop trying
+                throw new Error(lastError);
+            }
+        } catch (err) {
+            if (err.message && (err.message.indexOf('not found') !== -1 || err.message.indexOf('Failed to fetch') !== -1)) {
+                continue; // Try next model
+            }
+            lastError = err.message || 'Unknown error';
+        }
+    }
+
+    throw new Error(lastError || 'All models failed. Please wait a minute and try again.');
+}
+        ],
+        generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1024
+        }
+    };
+
     var url = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=' + aiApiKey;
 
     var response = await fetch(url, {
