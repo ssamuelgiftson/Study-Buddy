@@ -631,27 +631,74 @@
 </div>
 
 <!-- ==================== AI HELPER ==================== -->
+<!-- AI HELPER -->
 <div id="helper" class="pg">
     <div class="pghead">
-        <h2>🤖 AI Study Helper</h2>
+        <h2>🤖 AI Study Helper (Powered by Gemini)</h2>
         <select id="aiBookPicker" class="smallsel" onchange="aiSelectBook(this.value)">
-            <option value="">📚 Select a book first</option>
+            <option value="">📚 Select a book</option>
         </select>
     </div>
+
+    <!-- API Key Setup (shows only once) -->
+    <div id="apiKeyBox" class="infobox">
+        <h3>🔑 Setup AI (One Time Only)</h3>
+        <p style="margin-bottom:10px;font-size:0.85rem;color:var(--txt2);">
+            To use AI, you need a free Google Gemini API key:
+        </p>
+        <ol style="font-size:0.82rem;color:var(--txt2);margin:0 0 12px 20px;line-height:1.8;">
+            <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--p);font-weight:600;">aistudio.google.com/apikey</a></li>
+            <li>Sign in with Google</li>
+            <li>Click "Create API Key"</li>
+            <li>Copy and paste it below</li>
+        </ol>
+        <input type="password" id="apiKeyInput" class="forminput" placeholder="Paste your API key here...">
+        <button class="btn primary fullwidth" onclick="saveApiKey()" style="margin-top:8px;">💾 Save Key & Start</button>
+        <p style="margin-top:8px;font-size:0.7rem;color:var(--txt3);">🔒 Key is saved only on YOUR device. Never shared.</p>
+    </div>
+
+    <!-- Chat Area -->
     <div class="chatarea" id="chatArea">
         <div class="chatmsg bot">
             <div class="chatavatar">🤖</div>
             <div class="chatbubble">
-                <p>Hi! 👋 I'm your Study Helper!</p>
-                <p>Select a book above, then ask me anything:</p>
-                <p>• "What is [topic]?"</p>
-                <p>• "Summarize page 5"</p>
-                <p>• "Find [keyword]"</p>
+                <p>Hi! 👋 I'm your AI Study Helper powered by Google Gemini!</p>
+                <p>Select a book above, then try asking me:</p>
+                <p>• 📝 "Summarize chapter 1"</p>
+                <p>• 💡 "Explain photosynthesis simply"</p>
+                <p>• ❓ "What are the key points on page 5?"</p>
+                <p>• 🧠 "Create 5 questions from page 10-15"</p>
+                <p>• 📖 "Translate this to simple English"</p>
+                <p>• 🔍 "What is [any topic]?"</p>
             </div>
         </div>
     </div>
+
+    <!-- Typing indicator -->
+    <div id="aiTyping" class="ai-typing" style="display:none;">
+        <div class="chatmsg bot">
+            <div class="chatavatar">🤖</div>
+            <div class="chatbubble">
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Prompts -->
+    <div class="quick-prompts" id="quickPrompts">
+        <button class="qprompt" onclick="sendQuickPrompt('Summarize this chapter in simple points')">📝 Summarize</button>
+        <button class="qprompt" onclick="sendQuickPrompt('List the key points and important facts')">📌 Key Points</button>
+        <button class="qprompt" onclick="sendQuickPrompt('Explain this in simple words a student can understand')">💡 Simplify</button>
+        <button class="qprompt" onclick="sendQuickPrompt('Create 5 quiz questions with answers from this content')">🧠 Make Quiz</button>
+        <button class="qprompt" onclick="sendQuickPrompt('What are the important definitions in this text?')">📖 Definitions</button>
+        <button class="qprompt" onclick="sendQuickPrompt('Create flashcards from the important terms')">🔤 Flashcards</button>
+    </div>
+
+    <!-- Chat Input -->
     <div class="chatinputrow">
-        <input type="text" id="chatInput" class="chatinput" placeholder="Ask about your book..." onkeydown="if(event.key==='Enter')aiSendMessage()">
+        <input type="text" id="chatInput" class="chatinput" placeholder="Ask me anything about your book..." onkeydown="if(event.key==='Enter')aiSendMessage()">
         <button class="btn primary" onclick="aiSendMessage()">Send ➡️</button>
     </div>
 </div>
