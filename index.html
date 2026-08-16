@@ -12,17 +12,29 @@
 <div id="toastBox" class="toast-box"></div>
 
 <!-- NAME POPUP -->
+<!-- LOGIN POPUP -->
 <div class="name-popup" id="namePopup">
     <div class="name-box">
-        <div style="font-size:3.5rem;margin-bottom:12px;animation:popBounce 1s ease infinite alternate;">📚</div>
+        <div style="font-size:3.5rem;margin-bottom:12px;">📚</div>
         <h2>Welcome to StudyBuddy!</h2>
-        <p style="color:var(--txt2);margin-bottom:18px;font-size:0.9rem;">What should we call you?</p>
+        <p style="color:var(--txt2);margin-bottom:18px;font-size:0.9rem;">Sign in to save your progress across devices!</p>
+        
+        <!-- Google Sign In Button -->
+        <button class="btn primary fullwidth" onclick="signInWithGoogle()" style="padding:14px;font-size:1.05rem;margin-bottom:10px;">
+            🔐 Sign in with Google
+        </button>
+        
+        <p style="color:var(--txt3);margin-bottom:12px;font-size:0.78rem;">— or continue without account —</p>
+        
+        <!-- Manual Name Entry -->
         <input type="text" id="nameInput" class="forminput" placeholder="e.g. Den Bovertin" style="text-align:center;font-size:1.05rem;padding:14px;" onkeydown="if(event.key==='Enter')saveName()">
-        <button class="btn primary fullwidth" onclick="saveName()" style="margin-top:12px;padding:14px;font-size:1.05rem;">Start Learning 🚀</button>
-        <p style="margin-top:12px;font-size:0.72rem;color:var(--txt3);">✨ We'll personalize your experience!</p>
+        <button class="btn fullwidth" onclick="saveName()" style="margin-top:8px;padding:12px;font-size:0.95rem;background:var(--p);">
+            Continue as Guest ➡️
+        </button>
+        
+        <p style="margin-top:12px;font-size:0.72rem;color:var(--txt3);">🔒 Google sign-in syncs your data across devices!</p>
     </div>
 </div>
-
 <!-- NAVBAR -->
 <nav class="topnav">
     <span class="brand" onclick="navigate('home')">📚 StudyBuddy</span>
@@ -41,6 +53,16 @@
         <a onclick="navigate('notes')">📝 Notes</a>
         <a onclick="navigate('timer')">⏱ Timer</a>
     </div>
+
+    <!-- User Profile (shows after login) -->
+    <div id="userProfile" style="display:none;display:flex;align-items:center;gap:6px;background:var(--bg);padding:3px 10px 3px 3px;border-radius:20px;border:1px solid var(--bg2);">
+        <img id="userAvatar" style="width:26px;height:26px;border-radius:50%;border:2px solid var(--p);" src="" alt="">
+        <span id="userDisplayName" style="font-size:0.75rem;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+        <button class="btn small" onclick="signOutUser()" style="font-size:0.65rem;padding:3px 6px;">Sign Out</button>
+    </div>
+    <button class="themebtn" onclick="switchTheme()">🌙</button>
+</nav>
+
     <button class="themebtn" onclick="switchTheme()">🌙</button>
 </nav>
 
