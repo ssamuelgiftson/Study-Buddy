@@ -139,6 +139,175 @@ function subjectColor(s) {
     return map[s] || '#64748b,#94a3b8';
 }
 
+// ============ FIREBASE AUTH ============
+var currentUser = null;
+
+function signInWithGoogle() {
+    var provider = new firebase.auth.GoogleAuthProvider();
+    firebaseAuth.signInWithPopup(provider).then(function(result) {
+        var user = result.user;
+        currentUser = user;
+        
+        // Save user name
+        localStorage.setItem('sbName', user.displayName.split(' ')[0]);
+        
+        // Hide popup
+        document.getElementById('namePopup').classList.add('hidden');
+        
+        // Show profile in navbar
+        showUserProfile(user);
+        
+        // Update greeting
+        updateGreeting();
+        
+        // Sync data from cloud
+        loadCloudData(user.uid);
+        
+        toast('Welcome, ' + user.displayName.split(' ')[0] + '! 🎉', 'ok');
+    }).catch(function(error) {
+        console.error('Sign in error:', error);
+        toast('Sign in failed: ' + error.message, 'err');
+    });
+}
+
+function showUserProfile(user) {
+    var profileDiv = document.getElementById('userProfile');
+    var avatar = document.getElementById('userAvatar');
+    var nameEl = document.getElementById('userDisplayName');
+    
+    if (profileDiv) {
+        profileDiv.style.display = 'flex';
+    }
+    if (avatar && user.photoURL) {
+        avatar.src = user.photoURL;
+    }
+    if (nameEl) {
+        nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User';
+    }
+}
+
+function signOutUser() {
+    firebaseAuth.signOut().then(function() {
+        currentUser = null;
+        
+        // Hide profile
+        var profileDiv = document.getElementById('userProfile');
+        if (profileDiv) { profileDiv.style.display = 'none'; }
+        
+        // Show popup again
+        document.getElementById('namePopup').classList.remove('hidden');
+        
+        toast('Signed out!', 'info');
+    }).catch(function(error) {
+        toast('Error signing out', 'err');
+    });
+}
+
+// ============ CLOUD SYNC ============
+function saveToCloud(collection, data) {
+    if (!currentUser) { return; }
+    firebaseDB.collection('users').doc(currentUser.uid)
+        .collection(collection).doc(data.id)
+        .set(data)
+        .catch(function(err) {
+            console.error('Cloud save error:', err);
+        });
+}
+
+function deleteFromCloud(collection, docId) {
+    if (!currentUser) { return; }
+    firebaseDB.collection('users').doc(currentUser.uid)
+        .collection(collection).doc(docId)
+        .delete()
+        .catch(function(err) {
+            console.error('Cloud delete error:', err);
+        });
+}
+
+async function loadCloudData(userId) {
+    try {
+        // Load notes from cloud
+        var notesSnapshot = await firebaseDB.collection('users').doc(userId)
+            .collection('notes').get();
+        
+        if (!notesSnapshot.empty) {
+            var cloudNotes = [];
+            notesSnapshot.forEach(function(doc) {
+                cloudNotes.push(doc.data());
+            });
+            
+            // Merge with local notes
+            for (var i = 0; i < cloudNotes.length; i++) {
+                var exists = allNotes.find(function(n) { return n.id === cloudNotes[i].id; });
+                if (!exists) {
+                    allNotes.push(cloudNotes[i]);
+                    await dbSave('notes', cloudNotes[i]);
+                }
+            }
+            toast('📥 Synced ' + cloudNotes.length + ' notes from cloud!', 'info');
+        }
+
+        // Load learned words from cloud
+        var dictSnapshot = await firebaseDB.collection('users').doc(userId)
+            .collection('dictionary').get();
+        
+        if (!dictSnapshot.empty) {
+            var cloudWords = [];
+            dictSnapshot.forEach(function(doc) {
+                cloudWords.push(doc.data());
+            });
+            
+            for (var j = 0; j < cloudWords.length; j++) {
+                var wordExists = learnedWords.find(function(w) { return w.word === cloudWords[j].word; });
+                if (!wordExists) {
+                    learnedWords.push(cloudWords[j]);
+                }
+            }
+            localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
+            renderDictionary();
+        }
+
+        // Load stats from cloud
+        var statsDoc = await firebaseDB.collection('users').doc(userId)
+            .collection('settings').doc('stats').get();
+        
+        if (statsDoc.exists) {
+            var cloudStats = statsDoc.data();
+            // Use whichever has more quizzes taken
+            if (cloudStats.q > stats.q) {
+                stats = cloudStats;
+                localStorage.setItem('sbstats', JSON.stringify(stats));
+                updateDashboard();
+            }
+        }
+    } catch (err) {
+        console.error('Cloud load error:', err);
+    }
+}
+
+function syncStatsToCloud() {
+    if (!currentUser) { return; }
+    firebaseDB.collection('users').doc(currentUser.uid)
+        .collection('settings').doc('stats')
+        .set(stats)
+        .catch(function(err) {
+            console.error('Stats sync error:', err);
+        });
+}
+
+function syncDictionaryToCloud() {
+    if (!currentUser) { return; }
+    for (var i = 0; i < learnedWords.length; i++) {
+        var w = learnedWords[i];
+        firebaseDB.collection('users').doc(currentUser.uid)
+            .collection('dictionary').doc(w.word)
+            .set(w)
+            .catch(function(err) {
+                console.error('Dict sync error:', err);
+            });
+    }
+}
+
 function saveName() {
     var n = document.getElementById('nameInput').value.trim();
     if (!n) {
@@ -603,6 +772,7 @@ function markAsLearned() {
     learnedWords.push({ word: cw.w, meaning: cw.m, date: new Date().toLocaleDateString() });
     localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
     renderDictionary();
+        syncDictionaryToCloud();
     toast('✅ "' + cw.w + '" added!', 'ok');
 }
 
@@ -1149,6 +1319,7 @@ function showQuizResults() {
     stats.a += total;
     localStorage.setItem('sbstats', JSON.stringify(stats));
     updateDashboard();
+        syncStatsToCloud();
 }
 
 function quizReset() {
@@ -1487,6 +1658,14 @@ async function noteSave() {
     }
     noteCancel();
     renderNotes();
+
+    if (editingNoteId) {
+        var savedNote = allNotes.find(function(n) { return n.id === editingNoteId; });
+        if (savedNote) { saveToCloud('notes', savedNote); }
+    } else {
+        saveToCloud('notes', note);
+    }
+
     toast('Note saved!', 'ok');
 }
 
@@ -1523,6 +1702,7 @@ async function noteDelete(id) {
     await dbRemove('notes', id);
     allNotes = allNotes.filter(function(n) { return n.id !== id; });
     renderNotes();
+    deleteFromCloud('notes', id);
     toast('Deleted!', 'info');
 }
 
@@ -1595,12 +1775,25 @@ document.addEventListener('DOMContentLoaded', function() {
 window.onload = async function() {
     console.log('StudyBuddy starting...');
 
-    var savedName = localStorage.getItem('sbName');
-    if (savedName) {
-        var popup = document.getElementById('namePopup');
-        if (popup) { popup.classList.add('hidden'); }
-        updateGreeting();
-    }
+    // Check if user is logged in with Firebase
+    firebaseAuth.onAuthStateChanged(function(user) {
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('sbName', user.displayName ? user.displayName.split(' ')[0] : 'Student');
+            document.getElementById('namePopup').classList.add('hidden');
+            showUserProfile(user);
+            updateGreeting();
+            loadCloudData(user.uid);
+        } else {
+            // Check local name
+            var savedName = localStorage.getItem('sbName');
+            if (savedName) {
+                var popup = document.getElementById('namePopup');
+                if (popup) { popup.classList.add('hidden'); }
+                updateGreeting();
+            }
+        }
+    });
 
     if (localStorage.getItem('sbtheme') === 'dark') {
         document.body.classList.add('dark-theme');
