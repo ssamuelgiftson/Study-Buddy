@@ -795,7 +795,23 @@
 <footer>
     <p>Made with ❤️ by Samuel Giftson S | Grade VIII | St Christopher Academy</p>
 </footer>
-
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+    var firebaseConfig = {
+        apiKey: "AIzaSyB8hUZpHBupXTDpJiyYjX7OyDI8RXaJLCk",
+        authDomain: "study-buddy-sam.firebaseapp.com",
+        projectId: "study-buddy-sam",
+        storageBucket: "study-buddy-sam.firebasestorage.app",
+        messagingSenderId: "1059129776704",
+        appId: "1:1059129776704:web:d5a604d7593e9fab791da5"
+    };
+    firebase.initializeApp(firebaseConfig);
+    var firebaseAuth = firebase.auth();
+    var firebaseDB = firebase.firestore();
+</script>
+<script src="script.js?v=2"></script>
 <script src="script.js?v=2"></script>
 </body>
 </html>
