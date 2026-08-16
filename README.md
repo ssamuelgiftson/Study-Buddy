@@ -133,7 +133,7 @@
 
 ## 🚀 Live Demo
 
-👉 **(https://ssamuelgiftson.github.io/Study-Buddy/)**
+👉 **https://samuelgiftson.netlify.app/**
 
 ---
 
