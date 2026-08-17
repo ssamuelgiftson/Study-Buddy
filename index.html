@@ -3,7 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyBuddy — Samuel's Study Helper</title>
+    <title>StudyBuddy — Samuel's Study Helper</title>     <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StudyBuddy">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="stylesheet" href="style.css?v=2">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -835,5 +841,15 @@
 </script>
 <script src="script.js?v=2"></script>
 <script src="script.js?v=2"></script>
+<script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(function(reg) {
+            console.log('Service Worker registered!');
+        }).catch(function(err) {
+            console.log('SW registration failed:', err);
+        });
+    }
+</script>
 </body>
 </html>
