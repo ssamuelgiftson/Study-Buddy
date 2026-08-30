@@ -1287,16 +1287,73 @@ window.onload = async function() {
         document.querySelector('.themebtn').textContent = '☀️';
     }
 
-    var quotes = [
-        '"Education is the most powerful weapon." — Mandela',
-        '"Practice makes perfect!" 💪',
-        '"Believe you can and you\'re halfway there."',
-        '"அறிவே ஆற்றல் — Knowledge is Power" 📗',
-        '"The expert was once a beginner."'
+   var quotes = [
+    // 🌍 English — Famous Quotes
+    '"Education is the most powerful weapon." — Nelson Mandela 🌍',
+    '"The expert was once a beginner." 🌱',
+    '"Believe you can and you\'re halfway there." — Theodore Roosevelt 💪',
+    '"Practice makes perfect!" 💪',
+    '"Success is not final, failure is not fatal — it is the courage to continue that counts." — Winston Churchill 🏆',
+    '"The only way to do great work is to love what you do." — Steve Jobs 🍎',
+    '"It does not matter how slowly you go, as long as you do not stop." — Confucius 🐢',
+    '"The future belongs to those who believe in the beauty of their dreams." — Eleanor Roosevelt ✨',
+    '"A journey of a thousand miles begins with a single step." — Lao Tzu 👣',
+    '"Knowledge is power." — Francis Bacon 📚',
+    '"The roots of education are bitter, but the fruit is sweet." — Aristotle 🍎',
+    '"Live as if you were to die tomorrow. Learn as if you were to live forever." — Mahatma Gandhi 🕊️',
+    '"In the middle of difficulty lies opportunity." — Albert Einstein 💡',
+    '"The beautiful thing about learning is that no one can take it away from you." — B.B. King 🎵',
+    '"Don\'t let what you cannot do interfere with what you can do." — John Wooden 🏀',
+    '"You are never too old to set another goal or to dream a new dream." — C.S. Lewis 🌟',
+    '"The mind is not a vessel to be filled, but a fire to be kindled." — Plutarch 🔥',
+    '"Strive for progress, not perfection." 📈',
+    '"Small daily improvements are the key to long-term results." 🔑',
+    '"Your limitation — it\'s only your imagination." 🧠',
+    '"Push yourself, because no one else is going to do it for you." 💥',
+    '"Great things never come from comfort zones." 🚀',
+    '"Dream it. Wish it. Do it." ⭐',
+    '"Hard work beats talent when talent doesn\'t work hard." — Tim Notke 🏅',
+    '"Don\'t watch the clock; do what it does — keep going." — Sam Levenson ⏰',
+    '"Mistakes are proof that you are trying." ✏️',
+    '"Study hard, for the well is deep and our brains are shallow." — Richard Baxter 📖',
+    '"Today a reader, tomorrow a leader." — Margaret Fuller 👑',
+    '"The more that you read, the more things you will know." — Dr. Seuss 📚',
+    '"An investment in knowledge pays the best interest." — Benjamin Franklin 💰',
+
+    // 📐 Study & Science
+    '"Pure mathematics is the world\'s best game." — Richard Feynman 📐',
+    '"Science is a way of thinking much more than it is a body of knowledge." — Carl Sagan 🔬',
+    '"The important thing is to never stop questioning." — Albert Einstein ❓',
+    '"Genius is 1% inspiration and 99% perspiration." — Thomas Edison 💡',
+    '"Logic will get you from A to B. Imagination will take you everywhere." — Albert Einstein 🌌',
+
+    // 🇮🇳 Hindi Quotes
+    '"विद्या सबसे बड़ा धन है। — Knowledge is the greatest wealth" 📖',
+    '"मेहनत का फल मीठा होता है। — The fruit of hard work is sweet" 🍯',
+    '"कर्म करो, फल की चिंता मत करो। — Do your duty, don\'t worry about results" — Bhagavad Gita 🙏',
+    '"शिक्षा वो हथियार है जिससे आप दुनिया बदल सकते हैं। — Education is the weapon to change the world" 🌍',
+    '"हार मानना सबसे बड़ी हार है। — Giving up is the biggest defeat" 💪',
+    '"सपने वो नहीं जो सोते वक्त आए, सपने वो हैं जो सोने न दे। — Dreams are those that don\'t let you sleep" — APJ Abdul Kalam 🌟',
+    '"मुश्किलें इंसान को मजबूत बनाती हैं। — Difficulties make a person stronger" 🏔️',
+    '"पढ़ोगे लिखोगे बनोगे नवाब, खेलोगे कूदोगे होगे खराब। — Study to succeed!" 📚',
+    '"जो अपने कदमों की काबिलियत पर विश्वास रखते हैं, वो ही पहाड़ चढ़ते हैं। — Those who believe in their steps climb mountains" 🏔️',
+    '"असफलता सफलता की पहली सीढ़ी है। — Failure is the first step to success" 🪜',
+
+    // 📗 Tamil Quotes
+    '"கற்றது கைமண் அளவு, கல்லாதது உலகளவு — What you know is a handful, what you don\'t is the world" 📗',
+    '"அறிவே ஆற்றல் — Knowledge is Power" 📗',
+    '"உழைப்பே உயர்வு — Hard work leads to greatness" 💪',
+    '"கல்வி கரையில கற்பவர் நாள் சில — Knowledge is endless, life is short" ⏳',
+    '"அறம் செய விரும்பு — Desire to do good deeds" — Aathichudi 🙏',
+    '"தோல்வியே வெற்றியின் முதல் படி — Failure is the first step to success" 🪜',
+    '"பொறுமை கடலையும் கடக்கும் — Patience can cross even the ocean" 🌊',
+    '"கல்வியே அழியாத செல்வம் — Education is imperishable wealth" 💎',
+    '"முயற்சி திருவினையாக்கும் — Effort brings success" — Thirukkural ✨',
+    '"அன்பே தமிழ், தமிழே அன்பு — Love is Tamil, Tamil is Love" ❤️'
+];
     ];
     var quoteEl = document.getElementById('homeQuote');
-    if (quoteEl) { quoteEl.textContent = quotes[new Date().getDate() % quotes.length]; }
-
+   if (quoteEl) { quoteEl.textContent = quotes[Math.floor(Math.random() * quotes.length)]; }
     timerUpdateDisplay();
     engFCShow();
     engQuizLoad();
