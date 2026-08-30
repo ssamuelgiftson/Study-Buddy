@@ -142,19 +142,56 @@ function subjectColor(s) {
 var currentUser = null;
 
 function signInWithGoogle() {
+    // Check if Firebase is loaded
+    if (typeof firebase === 'undefined' || !firebaseAuth) {
+        toast('Firebase not loaded. Check your internet connection!', 'err');
+        return;
+    }
+    
     var provider = new firebase.auth.GoogleAuthProvider();
+    
+    // Try popup first, fall back to redirect
     firebaseAuth.signInWithPopup(provider).then(function(result) {
         var user = result.user;
         currentUser = user;
-        localStorage.setItem('sbName', user.displayName.split(' ')[0]);
-        document.getElementById('namePopup').classList.add('hidden');
+        
+        var firstName = 'User';
+        if (user.displayName) {
+            firstName = user.displayName.split(' ')[0];
+        }
+        
+        localStorage.setItem('sbName', firstName);
+        
+        // Hide popup
+        var popup = document.getElementById('namePopup');
+        if (popup) {
+            popup.classList.add('hidden');
+        }
+        
         showUserProfile(user);
         updateGreeting();
         loadCloudData(user.uid);
-        toast('Welcome, ' + user.displayName.split(' ')[0] + '! 🎉', 'ok');
+        
+        toast('Welcome, ' + firstName + '! 🎉', 'ok');
+        
     }).catch(function(error) {
         console.error('Sign in error:', error);
-        toast('Sign in failed: ' + error.message, 'err');
+        
+        if (error.code === 'auth/popup-blocked') {
+            toast('Popup blocked! Allow popups and try again.', 'warn');
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            toast('Sign in cancelled.', 'info');
+        } else if (error.code === 'auth/unauthorized-domain') {
+            toast('This domain is not authorized. Add it in Firebase Console!', 'err');
+            console.error('👉 Go to Firebase Console → Authentication → Settings → Authorized domains → Add your domain');
+        } else if (error.code === 'auth/operation-not-allowed') {
+            toast('Google Sign-In not enabled! Enable it in Firebase Console.', 'err');
+            console.error('👉 Go to Firebase Console → Authentication → Sign-in method → Enable Google');
+        } else if (error.code === 'auth/network-request-failed') {
+            toast('Network error. Check your internet!', 'err');
+        } else {
+            toast('Sign in failed: ' + error.message, 'err');
+        }
     });
 }
 
@@ -162,20 +199,45 @@ function showUserProfile(user) {
     var profileDiv = document.getElementById('userProfile');
     var avatar = document.getElementById('userAvatar');
     var nameEl = document.getElementById('userDisplayName');
-    if (profileDiv) { profileDiv.style.display = 'flex'; }
-    if (avatar && user.photoURL) { avatar.src = user.photoURL; }
-    if (nameEl) { nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User'; }
+    
+    if (profileDiv) {
+        profileDiv.style.display = 'flex';
+        profileDiv.classList.add('visible');
+    }
+    if (avatar && user.photoURL) {
+        avatar.src = user.photoURL;
+    } else if (avatar) {
+        avatar.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="13" fill="%236366f1"/><text x="13" y="18" text-anchor="middle" fill="white" font-size="14">👤</text></svg>';
+    }
+    if (nameEl) {
+        nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User';
+    }
 }
 
 function signOutUser() {
     firebaseAuth.signOut().then(function() {
         currentUser = null;
+        
+        // Hide profile
         var profileDiv = document.getElementById('userProfile');
-        if (profileDiv) { profileDiv.style.display = 'none'; }
-        document.getElementById('namePopup').classList.remove('hidden');
+        if (profileDiv) {
+            profileDiv.style.display = 'none';
+            profileDiv.classList.remove('visible');
+        }
+        
+        // Clear saved name
+        localStorage.removeItem('sbName');
+        
+        // Show login popup again
+        var popup = document.getElementById('namePopup');
+        if (popup) {
+            popup.classList.remove('hidden');
+        }
+        
         toast('Signed out!', 'info');
     }).catch(function(error) {
-        toast('Error signing out', 'err');
+        console.error('Sign out error:', error);
+        toast('Error signing out: ' + error.message, 'err');
     });
 }
 
@@ -261,12 +323,37 @@ function syncDictionaryToCloud() {
 }
 
 function saveName() {
-    var n = document.getElementById('nameInput').value.trim();
-    if (!n) { toast('Enter your name!', 'warn'); return; }
+    var input = document.getElementById('nameInput');
+    if (!input) {
+        console.error('nameInput element not found!');
+        toast('Something went wrong. Try refreshing.', 'err');
+        return;
+    }
+    
+    var n = input.value.trim();
+    if (!n) {
+        toast('Please enter your name! ✏️', 'warn');
+        input.focus();
+        return;
+    }
+    
+    if (n.length < 2) {
+        toast('Name must be at least 2 characters!', 'warn');
+        input.focus();
+        return;
+    }
+    
     localStorage.setItem('sbName', n);
-    document.getElementById('namePopup').classList.add('hidden');
+    
+    var popup = document.getElementById('namePopup');
+    if (popup) {
+        popup.classList.add('hidden');
+    }
+    
     updateGreeting();
-    toast('Welcome, ' + n + '! 🎉', 'ok');
+    updateDashboard();
+    
+    toast('Welcome, ' + n + '! 🎉 Let\'s start studying!', 'ok');
 }
 
 function updateGreeting() {
@@ -1264,23 +1351,47 @@ document.addEventListener('DOMContentLoaded', function() {
 window.onload = async function() {
     console.log('StudyBuddy starting...');
 
-    firebaseAuth.onAuthStateChanged(function(user) {
-        if (user) {
-            currentUser = user;
-            localStorage.setItem('sbName', user.displayName ? user.displayName.split(' ')[0] : 'Student');
-            document.getElementById('namePopup').classList.add('hidden');
-            showUserProfile(user);
-            updateGreeting();
-            loadCloudData(user.uid);
-        } else {
-            var savedName = localStorage.getItem('sbName');
-            if (savedName) {
-                var popup = document.getElementById('namePopup');
-                if (popup) { popup.classList.add('hidden'); }
-                updateGreeting();
-            }
+firebaseAuth.onAuthStateChanged(function(user) {
+    console.log('Auth state changed:', user ? user.email : 'No user');
+    
+    if (user) {
+        // User is signed in with Google
+        currentUser = user;
+        var firstName = user.displayName ? user.displayName.split(' ')[0] : 'Student';
+        localStorage.setItem('sbName', firstName);
+        
+        // Hide login popup
+        var popup = document.getElementById('namePopup');
+        if (popup) { popup.classList.add('hidden'); }
+        
+        // Show profile in navbar
+        showUserProfile(user);
+        updateGreeting();
+        
+        // Load cloud data
+        loadCloudData(user.uid);
+        
+    } else {
+        // No Google user — check for guest
+        currentUser = null;
+        
+        // Hide profile bar
+        var profileDiv = document.getElementById('userProfile');
+        if (profileDiv) {
+            profileDiv.style.display = 'none';
+            profileDiv.classList.remove('visible');
         }
-    });
+        
+        var savedName = localStorage.getItem('sbName');
+        if (savedName) {
+            // Guest user exists — hide popup
+            var popup = document.getElementById('namePopup');
+            if (popup) { popup.classList.add('hidden'); }
+            updateGreeting();
+        }
+        // If no savedName, popup stays visible (default)
+    }
+});
 
     if (localStorage.getItem('sbtheme') === 'dark') {
         document.body.classList.add('dark-theme');

@@ -57,14 +57,32 @@
         <a onclick="navigate('timer')">⏱ Timer</a>
     </div>
 
-    <div id="userProfile" style="display:none;display:flex;align-items:center;gap:6px;background:var(--bg);padding:3px 10px 3px 3px;border-radius:20px;border:1px solid var(--bg2);">
-        <img id="userAvatar" style="width:26px;height:26px;border-radius:50%;border:2px solid var(--p);" src="" alt="">
-        <span id="userDisplayName" style="font-size:0.75rem;font-weight:600;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+<nav class="topnav">
+    <span class="brand" onclick="navigate('home')">📚 StudyBuddy</span>
+    <div class="navlinks">
+        <a onclick="navigate('home')">🏠 Home</a>
+        <a onclick="navigate('library')">📚 Library</a>
+        <a onclick="navigate('reader')">📖 Reader</a>
+        <a onclick="navigate('math')">📐 Math</a>
+        <a onclick="navigate('english')">📖 English</a>
+        <a onclick="navigate('hindi')">📝 Hindi</a>
+        <a onclick="navigate('tamil')">📗 Tamil</a>
+        <a onclick="navigate('science')">🔬 Science</a>
+        <a onclick="navigate('quiz')">🧠 Quiz</a>
+        <a onclick="navigate('flashcards')">🔤 Cards</a>
+        <a onclick="navigate('notes')">📝 Notes</a>
+        <a onclick="navigate('timer')">⏱ Timer</a>
+    </div>
+
+    <!-- User Profile - HIDDEN by default, shown after login -->
+    <div id="userProfile" class="user-profile-bar" style="display:none;">
+        <img id="userAvatar" class="user-avatar" src="" alt="">
+        <span id="userDisplayName" class="user-name"></span>
         <button class="btn small" onclick="signOutUser()" style="font-size:0.65rem;padding:3px 6px;">Sign Out</button>
     </div>
+
     <button class="themebtn" onclick="switchTheme()">🌙</button>
 </nav>
-
 <!-- ==================== HOME ==================== -->
 <div id="home" class="pg show">
     <div class="hero">
@@ -753,7 +771,7 @@
     var firebaseAuth = firebase.auth();
     var firebaseDB = firebase.firestore();
 </script>
-<script src="script.js?v=2"></script>
+<script src="script.js?v=3"></script>
 <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then(function(reg) {
