@@ -87,7 +87,6 @@ function navigate(pageId) {
     if (pageId === 'library') { renderLibrary(); }
     if (pageId === 'quiz') { populateSelect('quizBookPicker'); }
     if (pageId === 'flashcards') { populateSelect('fcBookPicker'); }
-    if (pageId === 'helper') { populateSelect('aiBookPicker'); }
     if (pageId === 'notes') { renderNotes(); }
 }
 
@@ -147,22 +146,11 @@ function signInWithGoogle() {
     firebaseAuth.signInWithPopup(provider).then(function(result) {
         var user = result.user;
         currentUser = user;
-        
-        // Save user name
         localStorage.setItem('sbName', user.displayName.split(' ')[0]);
-        
-        // Hide popup
         document.getElementById('namePopup').classList.add('hidden');
-        
-        // Show profile in navbar
         showUserProfile(user);
-        
-        // Update greeting
         updateGreeting();
-        
-        // Sync data from cloud
         loadCloudData(user.uid);
-        
         toast('Welcome, ' + user.displayName.split(' ')[0] + '! 🎉', 'ok');
     }).catch(function(error) {
         console.error('Sign in error:', error);
@@ -174,29 +162,17 @@ function showUserProfile(user) {
     var profileDiv = document.getElementById('userProfile');
     var avatar = document.getElementById('userAvatar');
     var nameEl = document.getElementById('userDisplayName');
-    
-    if (profileDiv) {
-        profileDiv.style.display = 'flex';
-    }
-    if (avatar && user.photoURL) {
-        avatar.src = user.photoURL;
-    }
-    if (nameEl) {
-        nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User';
-    }
+    if (profileDiv) { profileDiv.style.display = 'flex'; }
+    if (avatar && user.photoURL) { avatar.src = user.photoURL; }
+    if (nameEl) { nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User'; }
 }
 
 function signOutUser() {
     firebaseAuth.signOut().then(function() {
         currentUser = null;
-        
-        // Hide profile
         var profileDiv = document.getElementById('userProfile');
         if (profileDiv) { profileDiv.style.display = 'none'; }
-        
-        // Show popup again
         document.getElementById('namePopup').classList.remove('hidden');
-        
         toast('Signed out!', 'info');
     }).catch(function(error) {
         toast('Error signing out', 'err');
@@ -209,9 +185,7 @@ function saveToCloud(collection, data) {
     firebaseDB.collection('users').doc(currentUser.uid)
         .collection(collection).doc(data.id)
         .set(data)
-        .catch(function(err) {
-            console.error('Cloud save error:', err);
-        });
+        .catch(function(err) { console.error('Cloud save error:', err); });
 }
 
 function deleteFromCloud(collection, docId) {
@@ -219,24 +193,16 @@ function deleteFromCloud(collection, docId) {
     firebaseDB.collection('users').doc(currentUser.uid)
         .collection(collection).doc(docId)
         .delete()
-        .catch(function(err) {
-            console.error('Cloud delete error:', err);
-        });
+        .catch(function(err) { console.error('Cloud delete error:', err); });
 }
 
 async function loadCloudData(userId) {
     try {
-        // Load notes from cloud
         var notesSnapshot = await firebaseDB.collection('users').doc(userId)
             .collection('notes').get();
-        
         if (!notesSnapshot.empty) {
             var cloudNotes = [];
-            notesSnapshot.forEach(function(doc) {
-                cloudNotes.push(doc.data());
-            });
-            
-            // Merge with local notes
+            notesSnapshot.forEach(function(doc) { cloudNotes.push(doc.data()); });
             for (var i = 0; i < cloudNotes.length; i++) {
                 var exists = allNotes.find(function(n) { return n.id === cloudNotes[i].id; });
                 if (!exists) {
@@ -247,33 +213,23 @@ async function loadCloudData(userId) {
             toast('📥 Synced ' + cloudNotes.length + ' notes from cloud!', 'info');
         }
 
-        // Load learned words from cloud
         var dictSnapshot = await firebaseDB.collection('users').doc(userId)
             .collection('dictionary').get();
-        
         if (!dictSnapshot.empty) {
             var cloudWords = [];
-            dictSnapshot.forEach(function(doc) {
-                cloudWords.push(doc.data());
-            });
-            
+            dictSnapshot.forEach(function(doc) { cloudWords.push(doc.data()); });
             for (var j = 0; j < cloudWords.length; j++) {
                 var wordExists = learnedWords.find(function(w) { return w.word === cloudWords[j].word; });
-                if (!wordExists) {
-                    learnedWords.push(cloudWords[j]);
-                }
+                if (!wordExists) { learnedWords.push(cloudWords[j]); }
             }
             localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
             renderDictionary();
         }
 
-        // Load stats from cloud
         var statsDoc = await firebaseDB.collection('users').doc(userId)
             .collection('settings').doc('stats').get();
-        
         if (statsDoc.exists) {
             var cloudStats = statsDoc.data();
-            // Use whichever has more quizzes taken
             if (cloudStats.q > stats.q) {
                 stats = cloudStats;
                 localStorage.setItem('sbstats', JSON.stringify(stats));
@@ -290,9 +246,7 @@ function syncStatsToCloud() {
     firebaseDB.collection('users').doc(currentUser.uid)
         .collection('settings').doc('stats')
         .set(stats)
-        .catch(function(err) {
-            console.error('Stats sync error:', err);
-        });
+        .catch(function(err) { console.error('Stats sync error:', err); });
 }
 
 function syncDictionaryToCloud() {
@@ -302,18 +256,13 @@ function syncDictionaryToCloud() {
         firebaseDB.collection('users').doc(currentUser.uid)
             .collection('dictionary').doc(w.word)
             .set(w)
-            .catch(function(err) {
-                console.error('Dict sync error:', err);
-            });
+            .catch(function(err) { console.error('Dict sync error:', err); });
     }
 }
 
 function saveName() {
     var n = document.getElementById('nameInput').value.trim();
-    if (!n) {
-        toast('Enter your name!', 'warn');
-        return;
-    }
+    if (!n) { toast('Enter your name!', 'warn'); return; }
     localStorage.setItem('sbName', n);
     document.getElementById('namePopup').classList.add('hidden');
     updateGreeting();
@@ -365,10 +314,7 @@ function resetUploadDialog() {
 function handleFilePick(event) {
     var file = event.target.files[0];
     if (!file) { return; }
-    if (file.type !== 'application/pdf') {
-        toast('Please pick a PDF file!', 'err');
-        return;
-    }
+    if (file.type !== 'application/pdf') { toast('Please pick a PDF file!', 'err'); return; }
     currentFile = file;
     document.getElementById('uploadStep1').style.display = 'none';
     document.getElementById('uploadStep2').style.display = 'block';
@@ -382,18 +328,9 @@ function handleFilePick(event) {
 async function processUpload() {
     var title = document.getElementById('uploadTitle').value.trim();
     var subject = document.getElementById('uploadSubject').value;
-    if (!title) {
-        toast('Enter a title!', 'warn');
-        return;
-    }
-    if (!subject) {
-        toast('Pick a subject!', 'warn');
-        return;
-    }
-    if (!currentFile) {
-        toast('No file chosen!', 'err');
-        return;
-    }
+    if (!title) { toast('Enter a title!', 'warn'); return; }
+    if (!subject) { toast('Pick a subject!', 'warn'); return; }
+    if (!currentFile) { toast('No file chosen!', 'err'); return; }
 
     var btn = document.getElementById('uploadGoBtn');
     btn.disabled = true;
@@ -405,46 +342,35 @@ async function processUpload() {
     try {
         statusText.textContent = 'Reading file...';
         fillBar.style.width = '5%';
-
         var arrayBuffer = await new Promise(function(resolve, reject) {
             var reader = new FileReader();
             reader.onload = function() { resolve(reader.result); };
             reader.onerror = function() { reject(new Error('Cannot read file')); };
             reader.readAsArrayBuffer(currentFile);
         });
-
         var arrayBufferCopy = arrayBuffer.slice(0);
-
         statusText.textContent = 'Loading PDF...';
         fillBar.style.width = '15%';
-
         var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         var totalPages = pdf.numPages;
         var pageTexts = [];
         var fullText = '';
-
         for (var i = 1; i <= totalPages; i++) {
             try {
                 var page = await pdf.getPage(i);
                 var textContent = await page.getTextContent();
-                var pageText = textContent.items.map(function(item) {
-                    return item.str;
-                }).join(' ').trim();
+                var pageText = textContent.items.map(function(item) { return item.str; }).join(' ').trim();
                 pageTexts.push(pageText || '');
                 fullText += pageText + '\n\n';
-            } catch (e) {
-                pageTexts.push('');
-            }
+            } catch (e) { pageTexts.push(''); }
             var pct = 15 + Math.round((i / totalPages) * 65);
             fillBar.style.width = pct + '%';
             statusText.textContent = 'Extracting page ' + i + ' / ' + totalPages + '...';
         }
-
         statusText.textContent = 'Saving...';
         fillBar.style.width = '85%';
         var pdfId = 'pdf_' + Date.now();
         await dbSave('pdfs', { id: pdfId, data: arrayBufferCopy });
-
         var book = {
             id: 'book_' + Date.now(),
             title: title,
@@ -457,16 +383,11 @@ async function processUpload() {
         };
         await dbSave('books', book);
         allBooks.push(book);
-
         fillBar.style.width = '100%';
         statusText.textContent = '✅ Done!';
         updateDashboard();
         toast('"' + title + '" uploaded! ' + totalPages + ' pages.', 'ok');
-
-        setTimeout(function() {
-            closeUploadDialog();
-            navigate('library');
-        }, 600);
+        setTimeout(function() { closeUploadDialog(); navigate('library'); }, 600);
     } catch (err) {
         console.error('Upload error:', err);
         toast('Error: ' + err.message, 'err');
@@ -505,9 +426,7 @@ function renderLibrary() {
 async function deleteBook(bookId) {
     if (!confirm('🗑️ Delete this book?')) { return; }
     var book = allBooks.find(function(b) { return b.id === bookId; });
-    if (book && book.pdfId) {
-        try { await dbRemove('pdfs', book.pdfId); } catch (e) {}
-    }
+    if (book && book.pdfId) { try { await dbRemove('pdfs', book.pdfId); } catch (e) {} }
     await dbRemove('books', bookId);
     allBooks = allBooks.filter(function(b) { return b.id !== bookId; });
     renderLibrary();
@@ -522,10 +441,7 @@ var readerCurrentBook = null;
 
 async function openReader(bookId) {
     var book = allBooks.find(function(b) { return b.id === bookId; });
-    if (!book) {
-        toast('Book not found!', 'err');
-        return;
-    }
+    if (!book) { toast('Book not found!', 'err'); return; }
     readerCurrentBook = book;
     readerCurrentPage = 0;
     readerZoomLevel = 1.3;
@@ -533,7 +449,6 @@ async function openReader(bookId) {
     navigate('reader');
     document.getElementById('readerBookTitle').textContent = '📖 ' + book.title;
     document.getElementById('readerDisplay').innerHTML = '<p class="placeholder">⏳ Loading...</p>';
-
     try {
         var pdfData = await dbGet('pdfs', book.pdfId);
         if (pdfData && pdfData.data) {
@@ -548,20 +463,12 @@ async function openReader(bookId) {
             }
             await renderReaderPage();
             toast('Book loaded! 📸', 'ok');
-        } else {
-            showReaderText();
-        }
-    } catch (err) {
-        console.warn('Reader error:', err);
-        showReaderText();
-    }
+        } else { showReaderText(); }
+    } catch (err) { console.warn('Reader error:', err); showReaderText(); }
 }
 
 async function renderReaderPage() {
-    if (!readerPdfDoc) {
-        showReaderText();
-        return;
-    }
+    if (!readerPdfDoc) { showReaderText(); return; }
     var display = document.getElementById('readerDisplay');
     display.innerHTML = '';
     try {
@@ -574,9 +481,7 @@ async function renderReaderPage() {
         var ctx = canvas.getContext('2d');
         await page.render({ canvasContext: ctx, viewport: viewport }).promise;
         display.appendChild(canvas);
-    } catch (e) {
-        showReaderText();
-    }
+    } catch (e) { showReaderText(); }
     document.getElementById('readerPageNum').textContent = (readerCurrentPage + 1) + ' / ' + readerCurrentBook.pages;
     document.getElementById('readerPageSelect').value = readerCurrentPage;
 }
@@ -653,23 +558,10 @@ function mathQuizLoad() {
             var idx = parseInt(this.getAttribute('data-idx'));
             var ans = parseInt(this.getAttribute('data-ans'));
             var allBtns = od.querySelectorAll('button');
-            for (var j = 0; j < allBtns.length; j++) {
-                allBtns[j].onclick = null;
-                allBtns[j].classList.add('locked');
-            }
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
             var fb = document.getElementById('mathQFb');
-            if (idx === ans) {
-                mathSC++;
-                this.classList.add('correct');
-                fb.textContent = '✅ Correct!';
-                fb.style.color = 'var(--ok)';
-            } else {
-                mathSW++;
-                this.classList.add('wrong');
-                allBtns[ans].classList.add('correct');
-                fb.textContent = '❌ Wrong!';
-                fb.style.color = 'var(--e)';
-            }
+            if (idx === ans) { mathSC++; this.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { mathSW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
             document.getElementById('mathSC').textContent = mathSC;
             document.getElementById('mathSW').textContent = mathSW;
         };
@@ -703,19 +595,9 @@ function engFCShow() {
     document.getElementById('engFC').classList.remove('flipped');
 }
 
-function engFCFlip() {
-    document.getElementById('engFC').classList.toggle('flipped');
-}
-
-function engFCNext() {
-    engFCI = (engFCI + 1) % engWords.length;
-    engFCShow();
-}
-
-function engFCPrev() {
-    engFCI = (engFCI - 1 + engWords.length) % engWords.length;
-    engFCShow();
-}
+function engFCFlip() { document.getElementById('engFC').classList.toggle('flipped'); }
+function engFCNext() { engFCI = (engFCI + 1) % engWords.length; engFCShow(); }
+function engFCPrev() { engFCI = (engFCI - 1 + engWords.length) % engWords.length; engFCShow(); }
 
 var currentPronunciation = 'US';
 
@@ -731,32 +613,22 @@ function setPronunciation(type) {
 }
 
 function speakWord(word) {
-    if (!window.speechSynthesis) {
-        toast('Speech not supported!', 'err');
-        return;
-    }
+    if (!window.speechSynthesis) { toast('Speech not supported!', 'err'); return; }
     window.speechSynthesis.cancel();
     var u = new SpeechSynthesisUtterance(word);
     u.rate = 0.85;
     u.lang = currentPronunciation === 'US' ? 'en-US' : 'en-GB';
     var voices = window.speechSynthesis.getVoices();
     for (var i = 0; i < voices.length; i++) {
-        if (voices[i].lang === u.lang) {
-            u.voice = voices[i];
-            break;
-        }
+        if (voices[i].lang === u.lang) { u.voice = voices[i]; break; }
     }
     window.speechSynthesis.speak(u);
 }
 
-function speakCurrentWord() {
-    speakWord(engWords[engFCI].w);
-}
+function speakCurrentWord() { speakWord(engWords[engFCI].w); }
 
 if (window.speechSynthesis) {
-    window.speechSynthesis.onvoiceschanged = function() {
-        window.speechSynthesis.getVoices();
-    };
+    window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); };
 }
 
 var learnedWords = JSON.parse(localStorage.getItem('sbDictionary') || '[]');
@@ -764,15 +636,12 @@ var learnedWords = JSON.parse(localStorage.getItem('sbDictionary') || '[]');
 function markAsLearned() {
     var cw = engWords[engFCI];
     for (var i = 0; i < learnedWords.length; i++) {
-        if (learnedWords[i].word === cw.w) {
-            toast('"' + cw.w + '" already in dictionary!', 'warn');
-            return;
-        }
+        if (learnedWords[i].word === cw.w) { toast('"' + cw.w + '" already in dictionary!', 'warn'); return; }
     }
     learnedWords.push({ word: cw.w, meaning: cw.m, date: new Date().toLocaleDateString() });
     localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
     renderDictionary();
-        syncDictionaryToCloud();
+    syncDictionaryToCloud();
     toast('✅ "' + cw.w + '" added!', 'ok');
 }
 
@@ -780,13 +649,8 @@ function renderDictionary(filter) {
     var container = document.getElementById('dictionaryList');
     var countEl = document.getElementById('dictCount');
     if (!container) { return; }
-    if (countEl) {
-        countEl.textContent = learnedWords.length + ' word' + (learnedWords.length !== 1 ? 's' : '') + ' learned';
-    }
-    if (learnedWords.length === 0) {
-        container.innerHTML = '<p class="placeholder">No words learned yet!</p>';
-        return;
-    }
+    if (countEl) { countEl.textContent = learnedWords.length + ' word' + (learnedWords.length !== 1 ? 's' : '') + ' learned'; }
+    if (learnedWords.length === 0) { container.innerHTML = '<p class="placeholder">No words learned yet!</p>'; return; }
     var wordsToShow = learnedWords;
     if (filter) {
         var lf = filter.toLowerCase();
@@ -797,10 +661,7 @@ function renderDictionary(filter) {
             }
         }
     }
-    if (wordsToShow.length === 0) {
-        container.innerHTML = '<p class="placeholder">No matching words</p>';
-        return;
-    }
+    if (wordsToShow.length === 0) { container.innerHTML = '<p class="placeholder">No matching words</p>'; return; }
     var html = '';
     for (var j = wordsToShow.length - 1; j >= 0; j--) {
         var w = wordsToShow[j];
@@ -824,9 +685,7 @@ function removeFromDictionary(word) {
     renderDictionary();
 }
 
-function filterDictionary(s) {
-    renderDictionary(s);
-}
+function filterDictionary(s) { renderDictionary(s); }
 
 function clearDictionary() {
     if (!confirm('Clear all?')) { return; }
@@ -863,23 +722,10 @@ function engQuizLoad() {
             var idx = parseInt(this.getAttribute('data-idx'));
             var ans = parseInt(this.getAttribute('data-ans'));
             var allBtns = od.querySelectorAll('button');
-            for (var j = 0; j < allBtns.length; j++) {
-                allBtns[j].onclick = null;
-                allBtns[j].classList.add('locked');
-            }
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
             var fb = document.getElementById('engQFb');
-            if (idx === ans) {
-                engSC++;
-                this.classList.add('correct');
-                fb.textContent = '✅ Correct!';
-                fb.style.color = 'var(--ok)';
-            } else {
-                engSW++;
-                this.classList.add('wrong');
-                allBtns[ans].classList.add('correct');
-                fb.textContent = '❌ Wrong!';
-                fb.style.color = 'var(--e)';
-            }
+            if (idx === ans) { engSC++; this.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { engSW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
             document.getElementById('engSC').textContent = engSC;
             document.getElementById('engSW').textContent = engSW;
         };
@@ -935,23 +781,10 @@ function hindiQuizLoad() {
             var idx = parseInt(this.getAttribute('data-idx'));
             var ans = parseInt(this.getAttribute('data-ans'));
             var allBtns = od.querySelectorAll('button');
-            for (var j = 0; j < allBtns.length; j++) {
-                allBtns[j].onclick = null;
-                allBtns[j].classList.add('locked');
-            }
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
             var fb = document.getElementById('hindiQFb');
-            if (idx === ans) {
-                hindiSC++;
-                this.classList.add('correct');
-                fb.textContent = '✅ सही!';
-                fb.style.color = 'var(--ok)';
-            } else {
-                hindiSW++;
-                this.classList.add('wrong');
-                allBtns[ans].classList.add('correct');
-                fb.textContent = '❌ गलत!';
-                fb.style.color = 'var(--e)';
-            }
+            if (idx === ans) { hindiSC++; this.classList.add('correct'); fb.textContent = '✅ सही!'; fb.style.color = 'var(--ok)'; }
+            else { hindiSW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ गलत!'; fb.style.color = 'var(--e)'; }
             document.getElementById('hindiSC').textContent = hindiSC;
             document.getElementById('hindiSW').textContent = hindiSW;
         };
@@ -1028,23 +861,10 @@ function tamilQuizLoad() {
             var idx = parseInt(this.getAttribute('data-idx'));
             var ans = parseInt(this.getAttribute('data-ans'));
             var allBtns = od.querySelectorAll('button');
-            for (var j = 0; j < allBtns.length; j++) {
-                allBtns[j].onclick = null;
-                allBtns[j].classList.add('locked');
-            }
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
             var fb = document.getElementById('tamilQFb');
-            if (idx === ans) {
-                tamilQuizC++;
-                this.classList.add('correct');
-                fb.textContent = '✅ சரி!';
-                fb.style.color = 'var(--ok)';
-            } else {
-                tamilQuizW++;
-                this.classList.add('wrong');
-                allBtns[ans].classList.add('correct');
-                fb.textContent = '❌ தவறு!';
-                fb.style.color = 'var(--e)';
-            }
+            if (idx === ans) { tamilQuizC++; this.classList.add('correct'); fb.textContent = '✅ சரி!'; fb.style.color = 'var(--ok)'; }
+            else { tamilQuizW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ தவறு!'; fb.style.color = 'var(--e)'; }
             document.getElementById('tamilScoreC').textContent = tamilQuizC;
             document.getElementById('tamilScoreW').textContent = tamilQuizW;
         };
@@ -1059,10 +879,7 @@ var quizWrong = 0;
 
 function goQuizFromLib(id) {
     navigate('quiz');
-    setTimeout(function() {
-        document.getElementById('quizBookPicker').value = id;
-        quizBookChanged();
-    }, 100);
+    setTimeout(function() { document.getElementById('quizBookPicker').value = id; quizBookChanged(); }, 100);
 }
 
 function quizBookChanged() {
@@ -1105,28 +922,18 @@ function generateQuestions(text, count) {
     var results = [];
     var sentences = text.split(/[.!?\n]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 20 && s.length < 250; });
     if (sentences.length < 3) { return results; }
-
     var stopList = 'the and for that this with from have been were they their which about would could should these those also into some than then only very more most such each because between through during without another does will just over under both same many much while since until upon here still even well back down like make made know take come give look find want tell good great first last long little around every never might shall a an is are was in on to of it';
     var stops = stopList.split(' ');
-
     var freq = {};
     var words = text.split(/\s+/);
     for (var wi = 0; wi < words.length; wi++) {
         var clean = words[wi].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
-        if (clean.length > 3 && stops.indexOf(clean) === -1) {
-            freq[clean] = (freq[clean] || 0) + 1;
-        }
+        if (clean.length > 3 && stops.indexOf(clean) === -1) { freq[clean] = (freq[clean] || 0) + 1; }
     }
-
     var keywords = [];
-    for (var word in freq) {
-        if (freq[word] >= 2 && freq[word] <= 25) {
-            keywords.push(word);
-        }
-    }
+    for (var word in freq) { if (freq[word] >= 2 && freq[word] <= 25) { keywords.push(word); } }
     keywords.sort(function(a, b) { return (freq[b] || 0) - (freq[a] || 0); });
     keywords = keywords.slice(0, 50);
-
     var used = {};
 
     for (var si = 0; si < sentences.length && results.length < Math.ceil(count * 0.5); si++) {
@@ -1138,37 +945,24 @@ function generateQuestions(text, count) {
         var bestIndex = -1;
         for (var bwi = 1; bwi < sWords.length - 1; bwi++) {
             var bwClean = sWords[bwi].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
-            if (keywords.indexOf(bwClean) !== -1 && bwClean.length > 4) {
-                bestWord = sWords[bwi];
-                bestIndex = bwi;
-                break;
-            }
+            if (keywords.indexOf(bwClean) !== -1 && bwClean.length > 4) { bestWord = sWords[bwi]; bestIndex = bwi; break; }
         }
         if (!bestWord) { continue; }
         used[sent] = true;
         var blanked = '';
         for (var bli = 0; bli < sWords.length; bli++) {
-            if (bli === bestIndex) { blanked += '________ '; }
-            else { blanked += sWords[bli] + ' '; }
+            if (bli === bestIndex) { blanked += '________ '; } else { blanked += sWords[bli] + ' '; }
         }
         blanked = blanked.trim();
         var correctAns = bestWord.replace(/[^a-zA-Z\u0900-\u097F\s]/g, '');
         var wrongAns = [];
         for (var wai = 0; wai < keywords.length && wrongAns.length < 3; wai++) {
-            if (keywords[wai] !== correctAns.toLowerCase()) {
-                wrongAns.push(keywords[wai]);
-            }
+            if (keywords[wai] !== correctAns.toLowerCase()) { wrongAns.push(keywords[wai]); }
         }
         if (wrongAns.length < 3) { continue; }
         var options = [correctAns, wrongAns[0], wrongAns[1], wrongAns[2]];
         options.sort(function() { return Math.random() - 0.5; });
-        results.push({
-            question: 'Fill in the blank:\n\n"' + blanked + '"',
-            options: options,
-            answer: options.indexOf(correctAns),
-            type: 'Fill in Blank',
-            explanation: 'Answer: ' + correctAns
-        });
+        results.push({ question: 'Fill in the blank:\n\n"' + blanked + '"', options: options, answer: options.indexOf(correctAns), type: 'Fill in Blank', explanation: 'Answer: ' + correctAns });
     }
 
     for (var ti = 0; ti < sentences.length && results.length < Math.ceil(count * 0.8); ti++) {
@@ -1182,24 +976,13 @@ function generateQuestions(text, count) {
             for (var ri = 1; ri < tfW.length - 1; ri++) {
                 var rc = tfW[ri].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, '');
                 if (keywords.indexOf(rc) !== -1 && rc.length > 4) {
-                    for (var rj = 0; rj < keywords.length; rj++) {
-                        if (keywords[rj] !== rc) {
-                            tfW[ri] = keywords[rj];
-                            break;
-                        }
-                    }
+                    for (var rj = 0; rj < keywords.length; rj++) { if (keywords[rj] !== rc) { tfW[ri] = keywords[rj]; break; } }
                     break;
                 }
             }
             displaySent = tfW.join(' ');
         }
-        results.push({
-            question: 'True or False?\n\n"' + displaySent + '"',
-            options: ['True ✅', 'False ❌'],
-            answer: isTrue ? 0 : 1,
-            type: 'True/False',
-            explanation: isTrue ? 'Correct!' : 'Original: "' + tfSent + '"'
-        });
+        results.push({ question: 'True or False?\n\n"' + displaySent + '"', options: ['True ✅', 'False ❌'], answer: isTrue ? 0 : 1, type: 'True/False', explanation: isTrue ? 'Correct!' : 'Original: "' + tfSent + '"' });
     }
 
     for (var ci = 0; ci < 5 && results.length < count; ci++) {
@@ -1210,13 +993,7 @@ function generateQuestions(text, count) {
         var wrongOpts = ['Not mentioned in text', 'From another chapter', 'Not discussed'];
         var compOpts = [preview, wrongOpts[0], wrongOpts[1], wrongOpts[2]];
         compOpts.sort(function() { return Math.random() - 0.5; });
-        results.push({
-            question: 'Which is from your book?',
-            options: compOpts,
-            answer: compOpts.indexOf(preview),
-            type: 'Comprehension',
-            explanation: 'Found: "' + compSent + '"'
-        });
+        results.push({ question: 'Which is from your book?', options: compOpts, answer: compOpts.indexOf(preview), type: 'Comprehension', explanation: 'Found: "' + compSent + '"' });
     }
 
     results.sort(function() { return Math.random() - 0.5; });
@@ -1224,10 +1001,7 @@ function generateQuestions(text, count) {
 }
 
 function showQuizQuestion() {
-    if (quizIndex >= quizQuestions.length) {
-        showQuizResults();
-        return;
-    }
+    if (quizIndex >= quizQuestions.length) { showQuizResults(); return; }
     var q = quizQuestions[quizIndex];
     document.getElementById('quizProgFill').style.width = (quizIndex / quizQuestions.length * 100) + '%';
     document.getElementById('quizProgLabel').textContent = 'Q' + (quizIndex + 1) + ' / ' + quizQuestions.length;
@@ -1251,28 +1025,11 @@ function showQuizQuestion() {
             var ans = parseInt(this.getAttribute('data-ans'));
             var exp = this.getAttribute('data-exp');
             var allBtns = optDiv.querySelectorAll('button');
-            for (var j = 0; j < allBtns.length; j++) {
-                allBtns[j].onclick = null;
-                allBtns[j].classList.add('locked');
-            }
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
             var fb = document.getElementById('quizFeedback');
-            if (idx === ans) {
-                quizCorrect++;
-                this.classList.add('correct');
-                fb.textContent = '✅ Correct!';
-                fb.style.color = 'var(--ok)';
-            } else {
-                quizWrong++;
-                this.classList.add('wrong');
-                allBtns[ans].classList.add('correct');
-                fb.textContent = '❌ Wrong!';
-                fb.style.color = 'var(--e)';
-            }
-            if (exp) {
-                var exEl = document.getElementById('quizExplain');
-                exEl.textContent = '💡 ' + exp;
-                exEl.classList.add('visible');
-            }
+            if (idx === ans) { quizCorrect++; this.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { quizWrong++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
+            if (exp) { var exEl = document.getElementById('quizExplain'); exEl.textContent = '💡 ' + exp; exEl.classList.add('visible'); }
             updateQuizScore();
             document.getElementById('quizNextBtn').style.display = 'inline-block';
         };
@@ -1281,20 +1038,13 @@ function showQuizQuestion() {
     updateQuizScore();
 }
 
-function quizNextQuestion() {
-    quizIndex++;
-    showQuizQuestion();
-}
+function quizNextQuestion() { quizIndex++; showQuizQuestion(); }
 
 function updateQuizScore() {
     document.getElementById('quizCorrectNum').textContent = quizCorrect;
     document.getElementById('quizWrongNum').textContent = quizWrong;
     var total = quizCorrect + quizWrong;
-    if (total > 0) {
-        document.getElementById('quizPercentNum').textContent = Math.round(quizCorrect / total * 100) + '%';
-    } else {
-        document.getElementById('quizPercentNum').textContent = '0%';
-    }
+    document.getElementById('quizPercentNum').textContent = total > 0 ? Math.round(quizCorrect / total * 100) + '%' : '0%';
 }
 
 function showQuizResults() {
@@ -1304,22 +1054,15 @@ function showQuizResults() {
     var pct = total > 0 ? Math.round(quizCorrect / total * 100) : 0;
     document.getElementById('quizResultPct').textContent = pct + '%';
     var circle = document.getElementById('quizResultCircle');
-    if (pct >= 80) {
-        circle.style.background = 'linear-gradient(135deg,#10b981,#059669)';
-        document.getElementById('quizResultMsg').textContent = '🌟 Excellent!';
-    } else if (pct >= 50) {
-        circle.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
-        document.getElementById('quizResultMsg').textContent = '👍 Good effort!';
-    } else {
-        circle.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
-        document.getElementById('quizResultMsg').textContent = '📖 Keep studying!';
-    }
+    if (pct >= 80) { circle.style.background = 'linear-gradient(135deg,#10b981,#059669)'; document.getElementById('quizResultMsg').textContent = '🌟 Excellent!'; }
+    else if (pct >= 50) { circle.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)'; document.getElementById('quizResultMsg').textContent = '👍 Good effort!'; }
+    else { circle.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)'; document.getElementById('quizResultMsg').textContent = '📖 Keep studying!'; }
     stats.q++;
     stats.c += quizCorrect;
     stats.a += total;
     localStorage.setItem('sbstats', JSON.stringify(stats));
     updateDashboard();
-        syncStatsToCloud();
+    syncStatsToCloud();
 }
 
 function quizReset() {
@@ -1333,10 +1076,7 @@ var fcIndex = 0;
 
 function goFCFromLib(id) {
     navigate('flashcards');
-    setTimeout(function() {
-        document.getElementById('fcBookPicker').value = id;
-        fcLoadBook(id);
-    }, 100);
+    setTimeout(function() { document.getElementById('fcBookPicker').value = id; fcLoadBook(id); }, 100);
 }
 
 function fcLoadBook(id) {
@@ -1348,9 +1088,7 @@ function fcLoadBook(id) {
         return;
     }
     fcCards = [];
-    var sents = book.fullText.split(/[.!?\n]+/).filter(function(s) {
-        return s.trim().length > 15 && s.trim().length < 200;
-    });
+    var sents = book.fullText.split(/[.!?\n]+/).filter(function(s) { return s.trim().length > 15 && s.trim().length < 200; });
     var freqMap = {};
     var allW = book.fullText.split(/\s+/);
     for (var i = 0; i < allW.length; i++) {
@@ -1358,9 +1096,7 @@ function fcLoadBook(id) {
         if (c.length > 4) { freqMap[c] = (freqMap[c] || 0) + 1; }
     }
     var kws = [];
-    for (var w in freqMap) {
-        if (freqMap[w] >= 2 && freqMap[w] <= 15) { kws.push(w); }
-    }
+    for (var w in freqMap) { if (freqMap[w] >= 2 && freqMap[w] <= 15) { kws.push(w); } }
     kws.sort(function(a, b) { return (freqMap[b] || 0) - (freqMap[a] || 0); });
     kws = kws.slice(0, 25);
     var usedKW = {};
@@ -1371,10 +1107,7 @@ function fcLoadBook(id) {
             if (usedKW[kws[ki]]) { continue; }
             if (trimmed.toLowerCase().indexOf(kws[ki]) !== -1) {
                 var back = trimmed.length > 120 ? trimmed.substring(0, 120) + '...' : trimmed;
-                fcCards.push({
-                    front: kws[ki].charAt(0).toUpperCase() + kws[ki].slice(1),
-                    back: back
-                });
+                fcCards.push({ front: kws[ki].charAt(0).toUpperCase() + kws[ki].slice(1), back: back });
                 usedKW[kws[ki]] = true;
                 break;
             }
@@ -1404,219 +1137,6 @@ function fcFlip() { document.getElementById('fcTheCard').classList.toggle('flipp
 function fcGoNext() { fcIndex = (fcIndex + 1) % fcCards.length; fcShowCard(); }
 function fcGoPrev() { fcIndex = (fcIndex - 1 + fcCards.length) % fcCards.length; fcShowCard(); }
 
-var aiSelectedBookId = null;
-var aiApiKey = localStorage.getItem('sbGeminiKey') || '';
-var aiBookContext = '';
-
-function saveApiKey() {
-    var key = document.getElementById('apiKeyInput').value.trim();
-    if (!key) {
-        toast('Paste your API key!', 'warn');
-        return;
-    }
-    if (key.length < 20) {
-        toast('Key too short!', 'warn');
-        return;
-    }
-    aiApiKey = key;
-    localStorage.setItem('sbGeminiKey', key);
-    document.getElementById('apiKeyBox').style.display = 'none';
-    toast('API key saved! 🤖', 'ok');
-    addChatMessage('bot', '✅ Ready! Select a book and ask anything!');
-}
-
-function checkApiKey() {
-    if (aiApiKey) {
-        var box = document.getElementById('apiKeyBox');
-        if (box) { box.style.display = 'none'; }
-    }
-}
-
-function aiSelectBook(bookId) {
-    aiSelectedBookId = bookId;
-    aiBookContext = '';
-    if (bookId) {
-        var book = allBooks.find(function(b) { return b.id === bookId; });
-        if (book) {
-            aiBookContext = book.fullText ? book.fullText.substring(0, 4000) : '';
-            addChatMessage('bot', '📘 Loaded "' + book.title + '" (' + book.pages + ' pages). Ask me anything!');
-        }
-    }
-}
-
-function sendQuickPrompt(prompt) {
-    if (!aiSelectedBookId) {
-        toast('Select a book first!', 'warn');
-        return;
-    }
-    document.getElementById('chatInput').value = prompt;
-    aiSendMessage();
-}
-
-async function aiSendMessage() {
-    var input = document.getElementById('chatInput');
-    var query = input.value.trim();
-    if (!query) { return; }
-    input.value = '';
-    addChatMessage('user', query);
-
-    if (!aiApiKey) {
-        addChatMessage('bot', '⚠️ Set up your API key first!');
-        var box = document.getElementById('apiKeyBox');
-        if (box) { box.style.display = 'block'; }
-        return;
-    }
-    if (!aiSelectedBookId) {
-        addChatMessage('bot', '⚠️ Select a book first!');
-        return;
-    }
-    var book = allBooks.find(function(b) { return b.id === aiSelectedBookId; });
-    if (!book) {
-        addChatMessage('bot', '❌ Book not found!');
-        return;
-    }
-
-    var pageContext = '';
-    var queryLower = query.toLowerCase();
-
-    var rangeMatch = queryLower.match(/page\s*(\d+)\s*(?:to|-)\s*(\d+)/);
-    var singleMatch = queryLower.match(/page\s*(\d+)/);
-
-    if (rangeMatch) {
-        var f = parseInt(rangeMatch[1]) - 1;
-        var t = parseInt(rangeMatch[2]);
-        if (f >= 0 && t <= book.pages) {
-            pageContext = book.pageTexts.slice(f, t).join('\n\n').substring(0, 5000);
-        }
-    } else if (singleMatch) {
-        var pg = parseInt(singleMatch[1]) - 1;
-        if (pg >= 0 && pg < book.pageTexts.length) {
-            pageContext = book.pageTexts[pg] || '';
-        }
-    }
-
-    var contextToUse = pageContext || aiBookContext;
-    if (!contextToUse || contextToUse.trim().length < 20) {
-        contextToUse = book.fullText ? book.fullText.substring(0, 4000) : 'No text available.';
-    }
-
-    var typingEl = document.getElementById('aiTyping');
-    if (typingEl) { typingEl.style.display = 'block'; }
-    scrollChatDown();
-
-    try {
-        var response = await callGemini(query, contextToUse, book.title);
-        if (typingEl) { typingEl.style.display = 'none'; }
-        addChatMessage('bot', response);
-    } catch (err) {
-        if (typingEl) { typingEl.style.display = 'none'; }
-        console.error('AI error:', err);
-        var errMsg = err.message || 'Something went wrong';
-        if (errMsg.indexOf('API_KEY_INVALID') !== -1) {
-            addChatMessage('bot', '❌ Invalid API key. Please check and re-enter.');
-            localStorage.removeItem('sbGeminiKey');
-            aiApiKey = '';
-            var keyBox = document.getElementById('apiKeyBox');
-            if (keyBox) { keyBox.style.display = 'block'; }
-        } else {
-            addChatMessage('bot', '❌ ' + errMsg);
-        }
-    }
-}
-
-async function callGemini(question, bookContext, bookTitle) {
-    var userName = localStorage.getItem('sbName') || 'Student';
-    var prompt = 'You are StudyBuddy AI for Grade 8 CBSE student ' + userName + '. ';
-    prompt += 'Book: "' + bookTitle + '". ';
-    prompt += 'Use simple language. Use bullet points. Be encouraging. ';
-    prompt += 'Based on this content:\n\n' + bookContext + '\n\nQuestion: ' + question;
-
-    var requestBody = {
-        contents: [
-            {
-                parts: [
-                    { text: prompt }
-                ]
-            }
-        ],
-        generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024
-        }
-    };
-
-    var modelUrls = [
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=',
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key='
-    ];
-
-    var lastError = 'No models available';
-
-    for (var i = 0; i < modelUrls.length; i++) {
-        try {
-            var url = modelUrls[i] + aiApiKey;
-            var response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-
-            var data = await response.json();
-
-            if (response.ok && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-                return data.candidates[0].content.parts[0].text;
-            }
-
-            if (data.error && data.error.message) {
-                lastError = data.error.message;
-                if (lastError.indexOf('not found') !== -1 || lastError.indexOf('not supported') !== -1) {
-                    console.log('Model ' + (i + 1) + ' not found, trying next...');
-                    continue;
-                }
-                if (lastError.indexOf('quota') !== -1 || lastError.indexOf('exceeded') !== -1 || lastError.indexOf('QUOTA') !== -1) {
-                    console.log('Model ' + (i + 1) + ' quota exceeded, trying next...');
-                    continue;
-                }
-                throw new Error(lastError);
-            }
-        } catch (fetchErr) {
-            var errMessage = fetchErr.message || 'Connection error';
-            if (errMessage.indexOf('not found') !== -1 || errMessage.indexOf('Failed to fetch') !== -1 || errMessage.indexOf('quota') !== -1 || errMessage.indexOf('exceeded') !== -1) {
-                lastError = errMessage;
-                continue;
-            }
-            lastError = errMessage;
-        }
-    }
-
-    throw new Error(lastError);
-}
-
-function addChatMessage(who, message) {
-    var chatArea = document.getElementById('chatArea');
-    var div = document.createElement('div');
-    div.className = 'chatmsg ' + who;
-    var avatar = who === 'bot' ? '🤖' : '👤';
-    var formatted = message
-        .replace(/</g, '&lt;')
-        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        .replace(/^- (.+)$/gm, '• $1')
-        .replace(/\n/g, '<br>');
-    div.innerHTML = '<div class="chatavatar">' + avatar + '</div><div class="chatbubble">' + formatted + '</div>';
-    chatArea.appendChild(div);
-    scrollChatDown();
-}
-
-function scrollChatDown() {
-    var chatArea = document.getElementById('chatArea');
-    setTimeout(function() {
-        chatArea.scrollTop = chatArea.scrollHeight;
-    }, 100);
-}
-
 var editingNoteId = null;
 
 function noteStartNew() {
@@ -1626,17 +1146,13 @@ function noteStartNew() {
     document.getElementById('noteEditBody').value = '';
 }
 
-function noteCancel() {
-    document.getElementById('noteEditArea').style.display = 'none';
-}
+function noteCancel() { document.getElementById('noteEditArea').style.display = 'none'; }
 
 async function noteSave() {
     var title = document.getElementById('noteEditTitle').value.trim();
     var body = document.getElementById('noteEditBody').value.trim();
-    if (!title || !body) {
-        toast('Enter title and content!', 'warn');
-        return;
-    }
+    if (!title || !body) { toast('Enter title and content!', 'warn'); return; }
+    var note;
     if (editingNoteId) {
         var existing = allNotes.find(function(n) { return n.id === editingNoteId; });
         if (existing) {
@@ -1644,9 +1160,10 @@ async function noteSave() {
             existing.body = body;
             existing.modified = new Date().toLocaleDateString();
             await dbSave('notes', existing);
+            note = existing;
         }
     } else {
-        var note = {
+        note = {
             id: 'note_' + Date.now(),
             title: title,
             body: body,
@@ -1658,14 +1175,7 @@ async function noteSave() {
     }
     noteCancel();
     renderNotes();
-
-    if (editingNoteId) {
-        var savedNote = allNotes.find(function(n) { return n.id === editingNoteId; });
-        if (savedNote) { saveToCloud('notes', savedNote); }
-    } else {
-        saveToCloud('notes', note);
-    }
-
+    if (note) { saveToCloud('notes', note); }
     toast('Note saved!', 'ok');
 }
 
@@ -1719,41 +1229,22 @@ function timerUpdateDisplay() {
 function timerStart() {
     if (timerInterval) { return; }
     timerInterval = setInterval(function() {
-        if (timerSecondsLeft <= 0) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            toast('⏰ Time is up!', 'ok');
-            return;
-        }
+        if (timerSecondsLeft <= 0) { clearInterval(timerInterval); timerInterval = null; toast('⏰ Time is up!', 'ok'); return; }
         timerSecondsLeft--;
         timerUpdateDisplay();
     }, 1000);
 }
 
-function timerPause() {
-    clearInterval(timerInterval);
-    timerInterval = null;
-}
+function timerPause() { clearInterval(timerInterval); timerInterval = null; }
 
-function timerReset() {
-    timerPause();
-    timerSecondsLeft = timerTotalSeconds;
-    timerUpdateDisplay();
-}
+function timerReset() { timerPause(); timerSecondsLeft = timerTotalSeconds; timerUpdateDisplay(); }
 
-function timerSetMinutes(mins) {
-    timerPause();
-    timerSecondsLeft = mins * 60;
-    timerTotalSeconds = mins * 60;
-    timerUpdateDisplay();
-}
+function timerSetMinutes(mins) { timerPause(); timerSecondsLeft = mins * 60; timerTotalSeconds = mins * 60; timerUpdateDisplay(); }
 
 document.addEventListener('DOMContentLoaded', function() {
     var picker = document.getElementById('filePicker');
     if (picker) {
-        picker.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
+        picker.addEventListener('dragover', function(e) { e.preventDefault(); });
         picker.addEventListener('drop', function(e) {
             e.preventDefault();
             var file = e.dataTransfer.files[0];
@@ -1765,9 +1256,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('pickedFileSize').textContent = (file.size / 1048576).toFixed(1) + ' MB';
                 document.getElementById('uploadTitle').value = file.name.replace('.pdf', '').replace(/[_-]+/g, ' ');
                 toast('File dropped!', 'info');
-            } else {
-                toast('Please drop a PDF!', 'err');
-            }
+            } else { toast('Please drop a PDF!', 'err'); }
         });
     }
 });
@@ -1775,7 +1264,6 @@ document.addEventListener('DOMContentLoaded', function() {
 window.onload = async function() {
     console.log('StudyBuddy starting...');
 
-    // Check if user is logged in with Firebase
     firebaseAuth.onAuthStateChanged(function(user) {
         if (user) {
             currentUser = user;
@@ -1785,7 +1273,6 @@ window.onload = async function() {
             updateGreeting();
             loadCloudData(user.uid);
         } else {
-            // Check local name
             var savedName = localStorage.getItem('sbName');
             if (savedName) {
                 var popup = document.getElementById('namePopup');
@@ -1808,9 +1295,7 @@ window.onload = async function() {
         '"The expert was once a beginner."'
     ];
     var quoteEl = document.getElementById('homeQuote');
-    if (quoteEl) {
-        quoteEl.textContent = quotes[new Date().getDate() % quotes.length];
-    }
+    if (quoteEl) { quoteEl.textContent = quotes[new Date().getDate() % quotes.length]; }
 
     timerUpdateDisplay();
     engFCShow();
@@ -1821,7 +1306,6 @@ window.onload = async function() {
     tamilShowFC();
     tamilQuizLoad();
     mathQuizLoad();
-    checkApiKey();
 
     try {
         await openDatabase();
