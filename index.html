@@ -1,785 +1,930 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StudyBuddy — Samuel's Study Helper</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6366f1">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="StudyBuddy">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="stylesheet" href="style.css?v=2">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-</head>
-<body>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-<div id="toastBox" class="toast-box"></div>
+function toast(msg, type) {
+    var box = document.getElementById('toastBox');
+    var el = document.createElement('div');
+    el.className = 'toast-item toast-' + (type || 'info');
+    el.textContent = msg;
+    box.appendChild(el);
+    setTimeout(function() { el.remove(); }, 4000);
+}
 
-<!-- LOGIN POPUP -->
-<div class="name-popup" id="namePopup">
-    <div class="name-box">
-        <div style="font-size:3.5rem;margin-bottom:12px;">📚</div>
-        <h2>Welcome to StudyBuddy!</h2>
-        <p style="color:var(--txt2);margin-bottom:18px;font-size:0.9rem;">Sign in to save your progress across devices!</p>
-        
-        <button class="btn primary fullwidth" onclick="signInWithGoogle()" style="padding:14px;font-size:1.05rem;margin-bottom:10px;">
-            🔐 Sign in with Google
-        </button>
-        
-        <p style="color:var(--txt3);margin-bottom:12px;font-size:0.78rem;">— or continue without account —</p>
-        
-        <input type="text" id="nameInput" class="forminput" placeholder="e.g. Samuel Giftson" style="text-align:center;font-size:1.05rem;padding:14px;" onkeydown="if(event.key==='Enter')saveName()">
-        <button class="btn fullwidth" onclick="saveName()" style="margin-top:8px;padding:12px;font-size:0.95rem;background:var(--p);">
-            Continue as Guest ➡️
-        </button>
-        
-        <p style="margin-top:12px;font-size:0.72rem;color:var(--txt3);">🔒 Google sign-in syncs your data across devices!</p>
-    </div>
-</div>
+var db = null;
 
-<!-- NAVBAR -->
-<nav class="topnav">
-    <span class="brand" onclick="navigate('home')">📚 StudyBuddy</span>
-    <div class="navlinks">
-        <a onclick="navigate('home')">🏠 Home</a>
-        <a onclick="navigate('library')">📚 Library</a>
-        <a onclick="navigate('reader')">📖 Reader</a>
-        <a onclick="navigate('math')">📐 Math</a>
-        <a onclick="navigate('english')">📖 English</a>
-        <a onclick="navigate('hindi')">📝 Hindi</a>
-        <a onclick="navigate('tamil')">📗 Tamil</a>
-        <a onclick="navigate('science')">🔬 Science</a>
-        <a onclick="navigate('quiz')">🧠 Quiz</a>
-        <a onclick="navigate('flashcards')">🔤 Cards</a>
-        <a onclick="navigate('notes')">📝 Notes</a>
-        <a onclick="navigate('timer')">⏱ Timer</a>
-    </div>
+function openDatabase() {
+    return new Promise(function(resolve, reject) {
+        var request = indexedDB.open('StudyBuddyV7', 1);
+        request.onupgradeneeded = function(e) {
+            var d = e.target.result;
+            if (!d.objectStoreNames.contains('books')) { d.createObjectStore('books', { keyPath: 'id' }); }
+            if (!d.objectStoreNames.contains('pdfs')) { d.createObjectStore('pdfs', { keyPath: 'id' }); }
+            if (!d.objectStoreNames.contains('notes')) { d.createObjectStore('notes', { keyPath: 'id' }); }
+        };
+        request.onsuccess = function(e) { db = e.target.result; resolve(); };
+        request.onerror = function() { reject('DB error'); };
+    });
+}
 
-<nav class="topnav">
-    <span class="brand" onclick="navigate('home')">📚 StudyBuddy</span>
-    <div class="navlinks">
-        <a onclick="navigate('home')">🏠 Home</a>
-        <a onclick="navigate('library')">📚 Library</a>
-        <a onclick="navigate('reader')">📖 Reader</a>
-        <a onclick="navigate('math')">📐 Math</a>
-        <a onclick="navigate('english')">📖 English</a>
-        <a onclick="navigate('hindi')">📝 Hindi</a>
-        <a onclick="navigate('tamil')">📗 Tamil</a>
-        <a onclick="navigate('science')">🔬 Science</a>
-        <a onclick="navigate('quiz')">🧠 Quiz</a>
-        <a onclick="navigate('flashcards')">🔤 Cards</a>
-        <a onclick="navigate('notes')">📝 Notes</a>
-        <a onclick="navigate('timer')">⏱ Timer</a>
-    </div>
+function dbSave(storeName, data) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).put(data);
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+}
 
-    <!-- User Profile - HIDDEN by default, shown after login -->
-    <div id="userProfile" class="user-profile-bar" style="display:none;">
-        <img id="userAvatar" class="user-avatar" src="" alt="">
-        <span id="userDisplayName" class="user-name"></span>
-        <button class="btn small" onclick="signOutUser()" style="font-size:0.65rem;padding:3px 6px;">Sign Out</button>
-    </div>
+function dbGetAll(storeName) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readonly');
+        var req = tx.objectStore(storeName).getAll();
+        req.onsuccess = function() { resolve(req.result); };
+        req.onerror = reject;
+    });
+}
 
-    <button class="themebtn" onclick="switchTheme()">🌙</button>
-</nav>
-<!-- ==================== HOME ==================== -->
-<div id="home" class="pg show">
-    <div class="hero">
-        <h1 id="heroGreeting">Welcome! 👋</h1>
-        <p id="heroMessage">Upload your textbooks and study smarter!</p>
-    </div>
+function dbGet(storeName, id) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readonly');
+        var req = tx.objectStore(storeName).get(id);
+        req.onsuccess = function() { resolve(req.result); };
+        req.onerror = reject;
+    });
+}
 
-    <div class="statrow">
-        <div class="statcard"><span class="bignum" id="stBooks">0</span><span>Books</span></div>
-        <div class="statcard"><span class="bignum" id="stQuiz">0</span><span>Quizzes</span></div>
-        <div class="statcard"><span class="bignum" id="stScore">0%</span><span>Avg Score</span></div>
-    </div>
+function dbRemove(storeName, id) {
+    return new Promise(function(resolve, reject) {
+        var tx = db.transaction(storeName, 'readwrite');
+        tx.objectStore(storeName).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = reject;
+    });
+}
 
-    <div class="gridcards">
-        <div class="gcard upload-gcard" onclick="openUploadDialog()">
-            <span class="gcicon">📤</span><h3>Upload Book</h3>
-        </div>
-        <div class="gcard" onclick="navigate('math')">
-            <span class="gcicon">📐</span><h3>Math</h3>
-        </div>
-        <div class="gcard" onclick="navigate('english')">
-            <span class="gcicon">📖</span><h3>English</h3>
-        </div>
-        <div class="gcard" onclick="navigate('hindi')">
-            <span class="gcicon">📝</span><h3>Hindi</h3>
-        </div>
-        <div class="gcard" onclick="navigate('tamil')">
-            <span class="gcicon">📗</span><h3>Tamil</h3>
-        </div>
-        <div class="gcard" onclick="navigate('science')">
-            <span class="gcicon">🔬</span><h3>Science</h3>
-        </div>
-        <div class="gcard" onclick="navigate('quiz')">
-            <span class="gcicon">🧠</span><h3>Quiz</h3>
-        </div>
-        <div class="gcard" onclick="navigate('timer')">
-            <span class="gcicon">⏱</span><h3>Timer</h3>
-        </div>
-    </div>
+var allBooks = [];
+var allNotes = [];
+var stats = JSON.parse(localStorage.getItem('sbstats') || '{"q":0,"c":0,"a":0}');
+var currentFile = null;
 
-    <div class="infobox" id="homeQuote" style="border-left:4px solid var(--a);text-align:center;font-style:italic;color:var(--txt2);"></div>
-</div>
+function navigate(pageId) {
+    var pages = document.querySelectorAll('.pg');
+    for (var i = 0; i < pages.length; i++) { pages[i].classList.remove('show'); }
+    document.getElementById(pageId).classList.add('show');
+    window.scrollTo(0, 0);
+    if (pageId === 'library') { renderLibrary(); }
+    if (pageId === 'quiz') { populateSelect('quizBookPicker'); }
+    if (pageId === 'flashcards') { populateSelect('fcBookPicker'); }
+    if (pageId === 'notes') { renderNotes(); }
+}
 
-<!-- ==================== MATH ==================== -->
-<div id="math" class="pg">
-    <h2>📐 Mathematics — Grade VIII</h2>
+function switchTheme() {
+    document.body.classList.toggle('dark-theme');
+    var btn = document.querySelector('.themebtn');
+    btn.textContent = document.body.classList.contains('dark-theme') ? '☀️' : '🌙';
+    localStorage.setItem('sbtheme', document.body.classList.contains('dark-theme') ? 'dark' : 'light');
+}
 
-    <div class="infobox">
-        <h3>📌 Key Formulas</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>Algebra</h4>
-                <p>(a + b)² = a² + 2ab + b²</p>
-                <p>(a - b)² = a² - 2ab + b²</p>
-                <p>(a + b)(a - b) = a² - b²</p>
-                <p>(a + b)³ = a³ + 3a²b + 3ab² + b³</p>
-            </div>
-            <div class="infocard">
-                <h4>Mensuration</h4>
-                <p>Trapezium = ½ × (a+b) × h</p>
-                <p>Rhombus = ½ × d₁ × d₂</p>
-                <p>Cube SA = 6a²</p>
-                <p>Cube Volume = a³</p>
-                <p>Cuboid Vol = l × b × h</p>
-                <p>Cylinder Vol = πr²h</p>
-            </div>
-            <div class="infocard">
-                <h4>Geometry</h4>
-                <p>Triangle angles = 180°</p>
-                <p>Quadrilateral = 360°</p>
-                <p>Exterior ∠ = Sum of opp. interior</p>
-                <p>Polygon angles = (n-2) × 180°</p>
-            </div>
-            <div class="infocard">
-                <h4>Profit, Loss & Interest</h4>
-                <p>Profit% = (Profit/CP) × 100</p>
-                <p>Loss% = (Loss/CP) × 100</p>
-                <p>SI = P × R × T / 100</p>
-                <p>CI = P(1 + R/100)ⁿ - P</p>
-            </div>
-            <div class="infocard">
-                <h4>Squares & Cubes</h4>
-                <p>11²=121, 12²=144, 13²=169</p>
-                <p>14²=196, 15²=225, 16²=256</p>
-                <p>17²=289, 18²=324, 19²=361</p>
-                <p>20²=400, 25²=625, 30²=900</p>
-            </div>
-            <div class="infocard">
-                <h4>Exponents</h4>
-                <p>aᵐ × aⁿ = aᵐ⁺ⁿ</p>
-                <p>aᵐ ÷ aⁿ = aᵐ⁻ⁿ</p>
-                <p>(aᵐ)ⁿ = aᵐⁿ</p>
-                <p>a⁰ = 1</p>
-            </div>
-        </div>
-    </div>
+function updateDashboard() {
+    document.getElementById('stBooks').textContent = allBooks.length;
+    document.getElementById('stQuiz').textContent = stats.q;
+    document.getElementById('stScore').textContent = stats.a > 0 ? Math.round(stats.c / stats.a * 100) + '%' : '0%';
+}
 
-    <div class="infobox">
-        <h3>🧮 Math Quiz</h3>
-        <div id="mathQText" class="questiontext"></div>
-        <div id="mathQOpts" class="optionsarea"></div>
-        <div id="mathQFb" class="feedback"></div>
-        <button class="btn primary" onclick="mathQuizLoad()">Next Question ➡️</button>
-        <div class="scorebar">
-            <span>✅ <b id="mathSC">0</b></span>
-            <span>❌ <b id="mathSW">0</b></span>
-        </div>
-    </div>
-</div>
+function subjectEmoji(s) {
+    var map = { math:'📐', english:'📖', hindi:'📝', tamil:'📗', science:'🔬', social:'🌍', computer:'💻', other:'📦' };
+    return map[s] || '📄';
+}
 
-<!-- ==================== ENGLISH ==================== -->
-<div id="english" class="pg">
-    <h2>📖 English</h2>
+function subjectColor(s) {
+    var map = { math:'#4f46e5,#7c3aed', english:'#059669,#10b981', hindi:'#db2777,#ec4899', tamil:'#059669,#0d9488', science:'#0891b2,#06b6d4', social:'#d97706,#f59e0b', computer:'#7c3aed,#8b5cf6' };
+    return map[s] || '#64748b,#94a3b8';
+}
 
-    <div class="infobox">
-        <h3>📚 Grammar Quick Reference</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>Parts of Speech</h4>
-                <p><b>Noun:</b> person, place, thing</p>
-                <p><b>Pronoun:</b> he, she, it, they</p>
-                <p><b>Verb:</b> run, eat, write</p>
-                <p><b>Adjective:</b> big, red, tall</p>
-                <p><b>Adverb:</b> quickly, slowly, well</p>
-            </div>
-            <div class="infocard">
-                <h4>Tenses</h4>
-                <p><b>Simple Present:</b> He writes daily</p>
-                <p><b>Present Cont:</b> He is writing now</p>
-                <p><b>Simple Past:</b> He wrote yesterday</p>
-                <p><b>Past Cont:</b> He was writing</p>
-                <p><b>Future:</b> He will write</p>
-            </div>
-            <div class="infocard">
-                <h4>Active & Passive Voice</h4>
-                <p><b>Active:</b> Ram eats an apple</p>
-                <p><b>Passive:</b> An apple is eaten by Ram</p>
-                <p>Rule: Object + is/am/are + V3 + by + Subject</p>
-            </div>
-            <div class="infocard">
-                <h4>Direct & Indirect Speech</h4>
-                <p><b>Direct:</b> He said, "I am happy."</p>
-                <p><b>Indirect:</b> He said that he was happy.</p>
-                <p>Change tense, pronoun & remove quotes</p>
-            </div>
-            <div class="infocard">
-                <h4>Articles</h4>
-                <p><b>A:</b> before consonant sounds</p>
-                <p><b>An:</b> before vowel sounds</p>
-                <p><b>The:</b> specific/already known</p>
-                <p>Tip: "An hour" (silent h)</p>
-            </div>
-            <div class="infocard">
-                <h4>Modals</h4>
-                <p><b>Can:</b> ability (I can swim)</p>
-                <p><b>May:</b> permission (May I go?)</p>
-                <p><b>Must:</b> necessity (You must study)</p>
-                <p><b>Should:</b> advice (You should rest)</p>
-            </div>
-            <div class="infocard">
-                <h4>Types of Sentences</h4>
-                <p><b>Declarative:</b> States fact (.)</p>
-                <p><b>Interrogative:</b> Asks question (?)</p>
-                <p><b>Imperative:</b> Gives command (.)</p>
-                <p><b>Exclamatory:</b> Shows emotion (!)</p>
-            </div>
-            <div class="infocard">
-                <h4>Conjunctions</h4>
-                <p><b>And:</b> adds information</p>
-                <p><b>But:</b> shows contrast</p>
-                <p><b>Because:</b> shows reason</p>
-                <p><b>Although:</b> despite something</p>
-            </div>
-        </div>
-    </div>
+// ============ FIREBASE AUTH ============
+var currentUser = null;
 
-    <div class="infobox">
-        <h3>🔤 Vocabulary Builder</h3>
-        <div class="pron-toggle">
-            <button class="pron-btn active" id="pronUSBtn" onclick="setPronunciation('US')">🇺🇸 American</button>
-            <button class="pron-btn" id="pronUKBtn" onclick="setPronunciation('UK')">🇬🇧 British</button>
-        </div>
-        <div class="fcwrap">
-            <div class="flashcard" id="engFC" onclick="engFCFlip()">
-                <div class="fcfront engfront" id="engFCF">Word</div>
-                <div class="fcback engback" id="engFCB">Meaning</div>
-            </div>
-        </div>
-        <p class="small center-text">👆 Tap card to flip | Click 🔊 to hear pronunciation</p>
-        <div class="fcnav">
-            <button class="btn" onclick="engFCPrev()">⬅️</button>
-            <button class="btn speak-btn" onclick="speakCurrentWord()">🔊 Speak</button>
-            <span id="engFCCt">1 / 15</span>
-            <button class="btn speak-btn" onclick="markAsLearned()">✅ Learned</button>
-            <button class="btn" onclick="engFCNext()">➡️</button>
-        </div>
-    </div>
+function signInWithGoogle() {
+    if (typeof firebase === 'undefined' || !firebaseAuth) {
+        toast('Firebase not loaded. Check your internet!', 'err');
+        return;
+    }
+    var provider = new firebase.auth.GoogleAuthProvider();
+    firebaseAuth.signInWithPopup(provider).then(function(result) {
+        var user = result.user;
+        currentUser = user;
+        var firstName = user.displayName ? user.displayName.split(' ')[0] : 'User';
+        localStorage.setItem('sbName', firstName);
+        var popup = document.getElementById('namePopup');
+        if (popup) { popup.classList.add('hidden'); }
+        showUserProfile(user);
+        updateGreeting();
+        loadCloudData(user.uid);
+        toast('Welcome, ' + firstName + '! 🎉', 'ok');
+    }).catch(function(error) {
+        console.error('Sign in error:', error);
+        if (error.code === 'auth/popup-blocked') { toast('Popup blocked! Allow popups and try again.', 'warn'); }
+        else if (error.code === 'auth/popup-closed-by-user') { toast('Sign in cancelled.', 'info'); }
+        else if (error.code === 'auth/unauthorized-domain') { toast('Domain not authorized! Add it in Firebase Console.', 'err'); }
+        else if (error.code === 'auth/operation-not-allowed') { toast('Google Sign-In not enabled in Firebase Console!', 'err'); }
+        else if (error.code === 'auth/network-request-failed') { toast('Network error. Check internet!', 'err'); }
+        else { toast('Sign in failed: ' + error.message, 'err'); }
+    });
+}
 
-    <div class="infobox">
-        <h3>📖 My Dictionary (Learned Words)</h3>
-        <div class="dict-controls">
-            <span id="dictCount">0 words learned</span>
-            <button class="btn small" onclick="clearDictionary()">🗑️ Clear All</button>
-        </div>
-        <div id="dictSearch" class="dict-search-wrap">
-            <input type="text" id="dictSearchInput" class="forminput" placeholder="🔍 Search your dictionary..." oninput="filterDictionary(this.value)">
-        </div>
-        <div id="dictionaryList" class="dict-list">
-            <p class="placeholder">No words learned yet. Flip cards and click ✅ Learned!</p>
-        </div>
-    </div>
+function showUserProfile(user) {
+    var profileDiv = document.getElementById('userProfile');
+    var avatar = document.getElementById('userAvatar');
+    var nameEl = document.getElementById('userDisplayName');
+    if (profileDiv) { profileDiv.style.display = 'flex'; profileDiv.classList.add('visible'); }
+    if (avatar && user.photoURL) { avatar.src = user.photoURL; }
+    else if (avatar) { avatar.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26"><circle cx="13" cy="13" r="13" fill="%236366f1"/><text x="13" y="18" text-anchor="middle" fill="white" font-size="14">👤</text></svg>'; }
+    if (nameEl) { nameEl.textContent = user.displayName ? user.displayName.split(' ')[0] : 'User'; }
+}
 
-    <div class="infobox">
-        <h3>📝 English Quiz</h3>
-        <div id="engQText" class="questiontext"></div>
-        <div id="engQOpts" class="optionsarea"></div>
-        <div id="engQFb" class="feedback"></div>
-        <button class="btn primary" onclick="engQuizLoad()">Next Question ➡️</button>
-        <div class="scorebar">
-            <span>✅ <b id="engSC">0</b></span>
-            <span>❌ <b id="engSW">0</b></span>
-        </div>
-    </div>
+function signOutUser() {
+    firebaseAuth.signOut().then(function() {
+        currentUser = null;
+        var profileDiv = document.getElementById('userProfile');
+        if (profileDiv) { profileDiv.style.display = 'none'; profileDiv.classList.remove('visible'); }
+        localStorage.removeItem('sbName');
+        var popup = document.getElementById('namePopup');
+        if (popup) { popup.classList.remove('hidden'); }
+        toast('Signed out!', 'info');
+    }).catch(function(error) {
+        console.error('Sign out error:', error);
+        toast('Error signing out: ' + error.message, 'err');
+    });
+}
 
-    <div class="infobox">
-        <h3>✍️ Writing Tips</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>📧 Letter Writing</h4>
-                <p>1. Sender's Address (top-right)</p>
-                <p>2. Date</p>
-                <p>3. Receiver's Address (left)</p>
-                <p>4. Subject</p>
-                <p>5. Salutation (Dear Sir/Madam)</p>
-                <p>6. Body (3 paragraphs)</p>
-                <p>7. Closing (Yours faithfully)</p>
-            </div>
-            <div class="infocard">
-                <h4>📝 Essay Writing</h4>
-                <p>1. <b>Introduction:</b> Hook + Thesis</p>
-                <p>2. <b>Body 1:</b> Main point + Example</p>
-                <p>3. <b>Body 2:</b> Supporting point</p>
-                <p>4. <b>Conclusion:</b> Summary + Opinion</p>
-            </div>
-            <div class="infocard">
-                <h4>📊 Notice Writing</h4>
-                <p>1. Name of Organization</p>
-                <p>2. Title: NOTICE</p>
-                <p>3. Date</p>
-                <p>4. Heading</p>
-                <p>5. Body (What, When, Where)</p>
-                <p>6. Signature & Designation</p>
-            </div>
-        </div>
-    </div>
-</div>
+// ============ CLOUD SYNC ============
+function saveToCloud(collection, data) {
+    if (!currentUser) { return; }
+    firebaseDB.collection('users').doc(currentUser.uid).collection(collection).doc(data.id).set(data).catch(function(err) { console.error('Cloud save error:', err); });
+}
 
-<!-- ==================== HINDI ==================== -->
-<div id="hindi" class="pg">
-    <h2>📝 हिंदी (Hindi)</h2>
+function deleteFromCloud(collection, docId) {
+    if (!currentUser) { return; }
+    firebaseDB.collection('users').doc(currentUser.uid).collection(collection).doc(docId).delete().catch(function(err) { console.error('Cloud delete error:', err); });
+}
 
-    <div class="infobox">
-        <h3>📖 व्याकरण (Grammar)</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>संज्ञा (Noun)</h4>
-                <p><b>व्यक्तिवाचक:</b> राम, दिल्ली</p>
-                <p><b>जातिवाचक:</b> लड़का, नदी</p>
-                <p><b>भाववाचक:</b> सुंदरता, बचपन</p>
-            </div>
-            <div class="infocard">
-                <h4>सर्वनाम (Pronoun)</h4>
-                <p><b>पुरुषवाचक:</b> मैं, तू, वह</p>
-                <p><b>निश्चयवाचक:</b> यह, वह</p>
-                <p><b>प्रश्नवाचक:</b> कौन, क्या</p>
-            </div>
-            <div class="infocard">
-                <h4>विशेषण (Adjective)</h4>
-                <p><b>गुणवाचक:</b> अच्छा, सुंदर</p>
-                <p><b>संख्यावाचक:</b> दो, तीन</p>
-                <p><b>परिमाणवाचक:</b> थोड़ा, बहुत</p>
-            </div>
-            <div class="infocard">
-                <h4>काल (Tense)</h4>
-                <p><b>भूतकाल:</b> गया, खाया</p>
-                <p><b>वर्तमानकाल:</b> जाता है, खाता है</p>
-                <p><b>भविष्यकाल:</b> जाएगा, खाएगा</p>
-            </div>
-        </div>
-    </div>
+async function loadCloudData(userId) {
+    try {
+        var notesSnapshot = await firebaseDB.collection('users').doc(userId).collection('notes').get();
+        if (!notesSnapshot.empty) {
+            var cloudNotes = [];
+            notesSnapshot.forEach(function(doc) { cloudNotes.push(doc.data()); });
+            for (var i = 0; i < cloudNotes.length; i++) {
+                var exists = allNotes.find(function(n) { return n.id === cloudNotes[i].id; });
+                if (!exists) { allNotes.push(cloudNotes[i]); await dbSave('notes', cloudNotes[i]); }
+            }
+            toast('📥 Synced ' + cloudNotes.length + ' notes from cloud!', 'info');
+        }
+        var dictSnapshot = await firebaseDB.collection('users').doc(userId).collection('dictionary').get();
+        if (!dictSnapshot.empty) {
+            var cloudWords = [];
+            dictSnapshot.forEach(function(doc) { cloudWords.push(doc.data()); });
+            for (var j = 0; j < cloudWords.length; j++) {
+                var wordExists = learnedWords.find(function(w) { return w.word === cloudWords[j].word; });
+                if (!wordExists) { learnedWords.push(cloudWords[j]); }
+            }
+            localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
+            renderDictionary();
+        }
+        var statsDoc = await firebaseDB.collection('users').doc(userId).collection('settings').doc('stats').get();
+        if (statsDoc.exists) {
+            var cloudStats = statsDoc.data();
+            if (cloudStats.q > stats.q) { stats = cloudStats; localStorage.setItem('sbstats', JSON.stringify(stats)); updateDashboard(); }
+        }
+    } catch (err) { console.error('Cloud load error:', err); }
+}
 
-    <div class="infobox">
-        <h3>🔤 शब्द भंडार (Vocabulary)</h3>
-        <div class="fcwrap">
-            <div class="flashcard" id="hindiFC" onclick="hindiFCFlip()">
-                <div class="fcfront" id="hindiFCF">शब्द</div>
-                <div class="fcback" id="hindiFCB">Meaning</div>
-            </div>
-        </div>
-        <p class="small center-text">👆 Tap to flip</p>
-        <div class="fcnav">
-            <button class="btn" onclick="hindiFCPrev()">⬅️</button>
-            <span id="hindiFCCt">1 / 15</span>
-            <button class="btn" onclick="hindiFCNext()">➡️</button>
-        </div>
-    </div>
+function syncStatsToCloud() {
+    if (!currentUser) { return; }
+    firebaseDB.collection('users').doc(currentUser.uid).collection('settings').doc('stats').set(stats).catch(function(err) { console.error('Stats sync error:', err); });
+}
 
-    <div class="infobox">
-        <h3>📝 Hindi Quiz (हिंदी प्रश्नोत्तरी)</h3>
-        <div id="hindiQText" class="questiontext"></div>
-        <div id="hindiQOpts" class="optionsarea"></div>
-        <div id="hindiQFb" class="feedback"></div>
-        <button class="btn primary" onclick="hindiQuizLoad()">अगला प्रश्न ➡️</button>
-        <div class="scorebar">
-            <span>✅ <b id="hindiSC">0</b></span>
-            <span>❌ <b id="hindiSW">0</b></span>
-        </div>
-    </div>
-</div>
+function syncDictionaryToCloud() {
+    if (!currentUser) { return; }
+    for (var i = 0; i < learnedWords.length; i++) {
+        var w = learnedWords[i];
+        firebaseDB.collection('users').doc(currentUser.uid).collection('dictionary').doc(w.word).set(w).catch(function(err) { console.error('Dict sync error:', err); });
+    }
+}
 
-<!-- ==================== TAMIL ==================== -->
-<div id="tamil" class="pg">
-    <h2>📗 தமிழ் பகுதி — Tamil Section</h2>
+function saveName() {
+    var input = document.getElementById('nameInput');
+    if (!input) { toast('Something went wrong. Try refreshing.', 'err'); return; }
+    var n = input.value.trim();
+    if (!n) { toast('Please enter your name! ✏️', 'warn'); input.focus(); return; }
+    if (n.length < 2) { toast('Name must be at least 2 characters!', 'warn'); input.focus(); return; }
+    localStorage.setItem('sbName', n);
+    var popup = document.getElementById('namePopup');
+    if (popup) { popup.classList.add('hidden'); }
+    updateGreeting();
+    updateDashboard();
+    toast('Welcome, ' + n + '! 🎉 Let\'s start studying!', 'ok');
+}
 
-    <div class="infobox">
-        <h3>📌 எழுத்துகள் (Letters)</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>உயிர் எழுத்துகள் (Vowels) — 12</h4>
-                <p class="tamilbig">அ ஆ இ ஈ உ ஊ எ ஏ ஐ ஒ ஓ ஔ</p>
-            </div>
-            <div class="infocard">
-                <h4>மெய் எழுத்துகள் (Consonants) — 18</h4>
-                <p class="tamilbig">க் ங் ச் ஞ் ட் ண் த் ந் ப் ம் ய் ர் ல் வ் ழ் ள் ற் ன்</p>
-            </div>
-            <div class="infocard">
-                <h4>உயிர்மெய் எழுத்துகள் — 216</h4>
-                <p>உயிர் + மெய் = உயிர்மெய்</p>
-                <p>க + அ = க, க + ஆ = கா, க + இ = கி</p>
-            </div>
-            <div class="infocard">
-                <h4>ஆய்த எழுத்து — 1</h4>
-                <p class="tamilbig" style="font-size:2.5rem;">ஃ</p>
-                <p>Total = 12 + 18 + 216 + 1 = <b>247</b></p>
-            </div>
-        </div>
-    </div>
+function updateGreeting() {
+    var n = localStorage.getItem('sbName');
+    if (!n) { return; }
+    var h = new Date().getHours();
+    var g = '', m = '';
+    if (h >= 5 && h < 12) { g = '🌅 Good Morning, ' + n + '!'; m = 'Great time to study! 💪'; }
+    else if (h >= 12 && h < 17) { g = '☀️ Good Afternoon, ' + n + '!'; m = 'Keep the momentum going! 🚀'; }
+    else if (h >= 17 && h < 21) { g = '🌇 Good Evening, ' + n + '!'; m = 'Revision time! 📝'; }
+    else { g = '🌙 Good Night, ' + n + '!'; m = 'Quick revision before bed! 🧠'; }
+    var greetEl = document.getElementById('heroGreeting');
+    var msgEl = document.getElementById('heroMessage');
+    if (greetEl) { greetEl.textContent = g; }
+    if (msgEl) { msgEl.textContent = m; }
+}
 
-    <div class="infobox">
-        <h3>📖 இலக்கணம் (Grammar)</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>பெயர்ச்சொல் (Noun)</h4>
-                <p><b>பொருட்பெயர்:</b> மரம், புத்தகம்</p>
-                <p><b>இடப்பெயர்:</b> சென்னை, பள்ளி</p>
-                <p><b>காலப்பெயர்:</b> காலை, மாலை</p>
-                <p><b>சினைப்பெயர்:</b> கை, கால்</p>
-                <p><b>பண்புப்பெயர்:</b> நல்ல, பெரிய</p>
-            </div>
-            <div class="infocard">
-                <h4>வினைச்சொல் (Verb)</h4>
-                <p><b>தெரிநிலை:</b> படித்தான் (read)</p>
-                <p>நடக்கிறான் = He walks</p>
-                <p>நடந்தான் = He walked</p>
-                <p>நடப்பான் = He will walk</p>
-            </div>
-            <div class="infocard">
-                <h4>காலம் (Tense)</h4>
-                <p><b>இறந்தகாலம்:</b> சென்றான் (Past)</p>
-                <p><b>நிகழ்காலம்:</b> செல்கிறான் (Present)</p>
-                <p><b>எதிர்காலம்:</b> செல்வான் (Future)</p>
-            </div>
-            <div class="infocard">
-                <h4>வேற்றுமை (Case) — 8 Types</h4>
-                <p>1st: எழுவாய் (Subject)</p>
-                <p>2nd: ஐ — செய்தொகை</p>
-                <p>3rd: ஆல், ஓடு — கருவி</p>
-                <p>4th: கு — கொடை</p>
-                <p>5th: இன் — நீங்கல்</p>
-                <p>6th: அது — உடைமை</p>
-                <p>7th: கண் — இடம்</p>
-                <p>8th: விளி (Calling)</p>
-            </div>
-        </div>
-    </div>
+function openUploadDialog() { document.getElementById('uploadOverlay').classList.add('show'); resetUploadDialog(); }
+function closeUploadDialog() { document.getElementById('uploadOverlay').classList.remove('show'); }
 
-    <div class="infobox">
-        <h3>🔤 சொல் பயிற்சி (Vocabulary — 40 Words!)</h3>
-        <div class="fcwrap">
-            <div class="flashcard tamilcard" id="tamilCard" onclick="tamilFlip()">
-                <div class="fcfront tamilfront" id="tamilFront">தமிழ்</div>
-                <div class="fcback tamilback" id="tamilBack">Tamil</div>
-            </div>
-        </div>
-        <p class="small center-text">👆 Tap to see meaning</p>
-        <div class="fcnav">
-            <button class="btn" onclick="tamilPrev()">⬅️</button>
-            <span id="tamilCounter">1 / 40</span>
-            <button class="btn" onclick="tamilNext()">➡️</button>
-        </div>
-    </div>
+function resetUploadDialog() {
+    document.getElementById('uploadStep1').style.display = 'block';
+    document.getElementById('uploadStep2').style.display = 'none';
+    document.getElementById('uploadProgressArea').style.display = 'none';
+    document.getElementById('realFileInput').value = '';
+    currentFile = null;
+}
 
-    <div class="infobox">
-        <h3>📝 Tamil Quiz (தமிழ் வினாடி வினா)</h3>
-        <div id="tamilQText" class="questiontext"></div>
-        <div id="tamilQOpts" class="optionsarea"></div>
-        <div id="tamilQFb" class="feedback"></div>
-        <button class="btn primary" onclick="tamilQuizLoad()">அடுத்த கேள்வி ➡️</button>
-        <div class="scorebar">
-            <span>✅ <b id="tamilScoreC">0</b></span>
-            <span>❌ <b id="tamilScoreW">0</b></span>
-        </div>
-    </div>
+function handleFilePick(event) {
+    var file = event.target.files[0];
+    if (!file) { return; }
+    if (file.type !== 'application/pdf') { toast('Please pick a PDF file!', 'err'); return; }
+    currentFile = file;
+    document.getElementById('uploadStep1').style.display = 'none';
+    document.getElementById('uploadStep2').style.display = 'block';
+    document.getElementById('pickedFileName').textContent = file.name;
+    document.getElementById('pickedFileSize').textContent = (file.size / 1048576).toFixed(1) + ' MB';
+    document.getElementById('uploadTitle').value = file.name.replace('.pdf', '').replace(/[_-]+/g, ' ');
+    document.getElementById('uploadSubject').value = '';
+    toast('File selected!', 'info');
+}
 
-    <div class="infobox">
-        <h3>📚 பழமொழிகள் (Proverbs)</h3>
-        <div class="infogrid">
-            <div class="infocard proverbcard"><p class="proverbtext">கற்றது கைமண் அளவு, கல்லாதது உலகளவு</p><p class="proverbmeaning">What you know is a handful; what you don't is the world</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">அறிவே ஆற்றல்</p><p class="proverbmeaning">Knowledge is Power</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">உழைப்பே உயர்வு</p><p class="proverbmeaning">Hard work leads to greatness</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">ஆத்திசூடி: அறம் செய விரும்பு</p><p class="proverbmeaning">Desire to do good deeds</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">கல்வி கரையில கற்பவர் நாள் சில</p><p class="proverbmeaning">Knowledge is endless, life is short</p></div>
-            <div class="infocard proverbcard"><p class="proverbtext">விதை நன்றாக இருந்தால் விளைச்சல் நன்றாக இருக்கும்</p><p class="proverbmeaning">Good seeds yield good harvest</p></div>
-        </div>
-    </div>
-</div>
+async function processUpload() {
+    var title = document.getElementById('uploadTitle').value.trim();
+    var subject = document.getElementById('uploadSubject').value;
+    if (!title) { toast('Enter a title!', 'warn'); return; }
+    if (!subject) { toast('Pick a subject!', 'warn'); return; }
+    if (!currentFile) { toast('No file chosen!', 'err'); return; }
+    var btn = document.getElementById('uploadGoBtn');
+    btn.disabled = true; btn.textContent = '⏳ Processing...';
+    document.getElementById('uploadProgressArea').style.display = 'block';
+    var fillBar = document.getElementById('uploadProgFill');
+    var statusText = document.getElementById('uploadStatusText');
+    try {
+        statusText.textContent = 'Reading file...'; fillBar.style.width = '5%';
+        var arrayBuffer = await new Promise(function(resolve, reject) {
+            var reader = new FileReader();
+            reader.onload = function() { resolve(reader.result); };
+            reader.onerror = function() { reject(new Error('Cannot read file')); };
+            reader.readAsArrayBuffer(currentFile);
+        });
+        var arrayBufferCopy = arrayBuffer.slice(0);
+        statusText.textContent = 'Loading PDF...'; fillBar.style.width = '15%';
+        var pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        var totalPages = pdf.numPages;
+        var pageTexts = []; var fullText = '';
+        for (var i = 1; i <= totalPages; i++) {
+            try {
+                var page = await pdf.getPage(i);
+                var textContent = await page.getTextContent();
+                var pageText = textContent.items.map(function(item) { return item.str; }).join(' ').trim();
+                pageTexts.push(pageText || ''); fullText += pageText + '\n\n';
+            } catch (e) { pageTexts.push(''); }
+            fillBar.style.width = (15 + Math.round((i / totalPages) * 65)) + '%';
+            statusText.textContent = 'Extracting page ' + i + ' / ' + totalPages + '...';
+        }
+        statusText.textContent = 'Saving...'; fillBar.style.width = '85%';
+        var pdfId = 'pdf_' + Date.now();
+        await dbSave('pdfs', { id: pdfId, data: arrayBufferCopy });
+        var book = { id: 'book_' + Date.now(), title: title, subject: subject, pages: totalPages, pageTexts: pageTexts, fullText: fullText.replace(/\s+/g, ' ').trim().substring(0, 500000), pdfId: pdfId, date: new Date().toLocaleDateString() };
+        await dbSave('books', book); allBooks.push(book);
+        fillBar.style.width = '100%'; statusText.textContent = '✅ Done!';
+        updateDashboard(); toast('"' + title + '" uploaded! ' + totalPages + ' pages.', 'ok');
+        setTimeout(function() { closeUploadDialog(); navigate('library'); }, 600);
+    } catch (err) { console.error('Upload error:', err); toast('Error: ' + err.message, 'err'); statusText.textContent = '❌ ' + err.message; }
+    btn.disabled = false; btn.textContent = '📤 Upload & Process';
+}
 
-<!-- ==================== SCIENCE ==================== -->
-<div id="science" class="pg">
-    <h2>🔬 Science — Grade VIII</h2>
+function renderLibrary() {
+    var grid = document.getElementById('libContent');
+    if (allBooks.length === 0) { grid.innerHTML = '<p class="placeholder">📚 No books yet. Upload your first PDF!</p>'; return; }
+    var html = '';
+    for (var i = 0; i < allBooks.length; i++) {
+        var b = allBooks[i];
+        html += '<div class="libcard"><div class="libcard-top" style="background:linear-gradient(135deg,' + subjectColor(b.subject) + ')"><h3>' + b.title + '</h3><p>' + subjectEmoji(b.subject) + ' ' + b.subject + '</p></div><div class="libcard-bot"><div class="libcard-meta"><span>📄 ' + b.pages + ' pages</span><span>' + b.date + '</span></div><div class="libcard-btns"><button class="btn small" style="background:var(--p)" onclick="openReader(\'' + b.id + '\')">📖 Read</button><button class="btn small" style="background:var(--ok)" onclick="goQuizFromLib(\'' + b.id + '\')">🧠 Quiz</button><button class="btn small" style="background:var(--w);color:#1e293b" onclick="goFCFromLib(\'' + b.id + '\')">🔤 Cards</button><button class="btn small" style="background:var(--e)" onclick="deleteBook(\'' + b.id + '\')">🗑️ Delete</button></div></div></div>';
+    }
+    grid.innerHTML = html;
+}
 
-    <div class="infobox">
-        <h3>📌 Key Concepts</h3>
-        <div class="infogrid">
-            <div class="infocard">
-                <h4>⚡ Physics</h4>
-                <p>Force = Mass × Acceleration</p>
-                <p>Pressure = Force / Area</p>
-                <p>Speed = Distance / Time</p>
-                <p>Work = Force × Displacement</p>
-                <p>Friction opposes motion</p>
-                <p>Sound needs medium to travel</p>
-            </div>
-            <div class="infocard">
-                <h4>🧪 Chemistry</h4>
-                <p>Atom: Smallest particle of element</p>
-                <p>Molecule: Group of atoms bonded</p>
-                <p>Valency: Combining capacity</p>
-                <p>pH Scale: 0 (Acid) — 14 (Base)</p>
-                <p>Combustion needs: Fuel + O₂ + Heat</p>
-            </div>
-            <div class="infocard">
-                <h4>🧬 Biology</h4>
-                <p>Cell: Basic unit of life</p>
-                <p>Nucleus: Control center (DNA)</p>
-                <p>Mitochondria: Powerhouse of cell</p>
-                <p>Chloroplast: Photosynthesis</p>
-                <p>Adolescence: 11–19 years</p>
-            </div>
-            <div class="infocard">
-                <h4>🌍 Environment</h4>
-                <p>Conservation: Protecting wildlife</p>
-                <p>Biosphere Reserve: Protected areas</p>
-                <p>Endangered species: Near extinction</p>
-                <p>Deforestation causes climate change</p>
-            </div>
-        </div>
-    </div>
-</div>
+async function deleteBook(bookId) {
+    if (!confirm('🗑️ Delete this book?')) { return; }
+    var book = allBooks.find(function(b) { return b.id === bookId; });
+    if (book && book.pdfId) { try { await dbRemove('pdfs', book.pdfId); } catch (e) {} }
+    await dbRemove('books', bookId);
+    allBooks = allBooks.filter(function(b) { return b.id !== bookId; });
+    renderLibrary(); updateDashboard(); toast('Book deleted!', 'info');
+}
 
-<!-- ==================== LIBRARY ==================== -->
-<div id="library" class="pg">
-    <div class="pghead">
-        <h2>📚 My Library</h2>
-        <button class="btn primary" onclick="openUploadDialog()">📤 Upload Book</button>
-    </div>
-    <div id="libContent" class="libgrid"></div>
-</div>
+var readerPdfDoc = null, readerCurrentPage = 0, readerZoomLevel = 1.3, readerCurrentBook = null;
 
-<!-- ==================== READER ==================== -->
-<div id="reader" class="pg">
-    <div class="pghead">
-        <h2 id="readerBookTitle">📖 Reader</h2>
-        <div class="rdcontrols">
-            <button class="btn small" onclick="readerPrev()">⬅️ Prev</button>
-            <span id="readerPageNum">0 / 0</span>
-            <button class="btn small" onclick="readerNext()">Next ➡️</button>
-            <select id="readerPageSelect" onchange="readerJump(+this.value)" class="smallsel"></select>
-            <button class="btn small" onclick="readerZoomChange(0.2)">🔍+</button>
-            <button class="btn small" onclick="readerZoomChange(-0.2)">🔍−</button>
-        </div>
-    </div>
-    <div id="readerDisplay" class="reader-display">
-        <p class="placeholder">📖 Go to Library and click "📖 Read" on a book</p>
-    </div>
-</div>
+async function openReader(bookId) {
+    var book = allBooks.find(function(b) { return b.id === bookId; });
+    if (!book) { toast('Book not found!', 'err'); return; }
+    readerCurrentBook = book; readerCurrentPage = 0; readerZoomLevel = 1.3; readerPdfDoc = null;
+    navigate('reader');
+    document.getElementById('readerBookTitle').textContent = '📖 ' + book.title;
+    document.getElementById('readerDisplay').innerHTML = '<p class="placeholder">⏳ Loading...</p>';
+    try {
+        var pdfData = await dbGet('pdfs', book.pdfId);
+        if (pdfData && pdfData.data) {
+            readerPdfDoc = await pdfjsLib.getDocument({ data: pdfData.data }).promise;
+            var sel = document.getElementById('readerPageSelect'); sel.innerHTML = '';
+            for (var i = 0; i < readerPdfDoc.numPages; i++) { var opt = document.createElement('option'); opt.value = i; opt.textContent = 'Page ' + (i + 1); sel.appendChild(opt); }
+            await renderReaderPage(); toast('Book loaded! 📸', 'ok');
+        } else { showReaderText(); }
+    } catch (err) { console.warn('Reader error:', err); showReaderText(); }
+}
 
-<!-- ==================== QUIZ ==================== -->
-<div id="quiz" class="pg">
-    <h2>🧠 Smart Quiz — By Chapter</h2>
+async function renderReaderPage() {
+    if (!readerPdfDoc) { showReaderText(); return; }
+    var display = document.getElementById('readerDisplay'); display.innerHTML = '';
+    try {
+        var page = await readerPdfDoc.getPage(readerCurrentPage + 1);
+        var viewport = page.getViewport({ scale: readerZoomLevel });
+        var canvas = document.createElement('canvas'); canvas.className = 'pdfcanvas';
+        canvas.width = viewport.width; canvas.height = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise;
+        display.appendChild(canvas);
+    } catch (e) { showReaderText(); }
+    document.getElementById('readerPageNum').textContent = (readerCurrentPage + 1) + ' / ' + readerCurrentBook.pages;
+    document.getElementById('readerPageSelect').value = readerCurrentPage;
+}
 
-    <div id="quizSetupBox" class="infobox">
-        <h3>📋 Quiz Setup</h3>
-        <label>Select Book:</label>
-        <select id="quizBookPicker" class="forminput" onchange="quizBookChanged()">
-            <option value="">-- Choose a book --</option>
-        </select>
-        <div id="quizPageRange" style="display:none;">
-            <div class="tworow">
-                <div>
-                    <label>From Page:</label>
-                    <input type="number" id="quizFrom" class="forminput" min="1" value="1">
-                </div>
-                <div>
-                    <label>To Page:</label>
-                    <input type="number" id="quizTo" class="forminput" min="1" value="10">
-                </div>
-            </div>
-            <label>Number of Questions:</label>
-            <select id="quizNumQ" class="forminput">
-                <option value="5">5 Questions</option>
-                <option value="10" selected>10 Questions</option>
-                <option value="15">15 Questions</option>
-            </select>
-            <button class="btn primary fullwidth" onclick="quizStart()" style="margin-top:10px;">🚀 Start Quiz</button>
-        </div>
-    </div>
+function showReaderText() {
+    var display = document.getElementById('readerDisplay');
+    var text = readerCurrentBook.pageTexts[readerCurrentPage] || 'No text on this page.';
+    display.innerHTML = '<div style="padding:16px;white-space:pre-wrap;line-height:1.7;font-size:0.88rem;word-break:break-word;">' + text + '</div>';
+    document.getElementById('readerPageNum').textContent = (readerCurrentPage + 1) + ' / ' + readerCurrentBook.pages;
+}
 
-    <div id="quizPlayBox" class="infobox" style="display:none;">
-        <div class="progbar"><div class="progfill" id="quizProgFill"></div></div>
-        <p id="quizProgLabel" class="small"></p>
-        <span class="typebadge" id="quizTypeBadge"></span>
-        <div id="quizQuestionText" class="questiontext"></div>
-        <div id="quizOptionsArea" class="optionsarea"></div>
-        <div id="quizFeedback" class="feedback"></div>
-        <div id="quizExplain" class="explain"></div>
-        <button id="quizNextBtn" class="btn primary" onclick="quizNextQuestion()" style="display:none;">Next ➡️</button>
-        <div class="scorebar">
-            <span>✅ <b id="quizCorrectNum">0</b></span>
-            <span>❌ <b id="quizWrongNum">0</b></span>
-            <span>📊 <b id="quizPercentNum">0%</b></span>
-        </div>
-    </div>
+async function readerNext() { if (!readerCurrentBook || readerCurrentPage >= readerCurrentBook.pages - 1) { return; } readerCurrentPage++; if (readerPdfDoc) { await renderReaderPage(); } else { showReaderText(); } }
+async function readerPrev() { if (!readerCurrentBook || readerCurrentPage <= 0) { return; } readerCurrentPage--; if (readerPdfDoc) { await renderReaderPage(); } else { showReaderText(); } }
+async function readerJump(pageNum) { readerCurrentPage = pageNum; if (readerPdfDoc) { await renderReaderPage(); } else { showReaderText(); } }
+async function readerZoomChange(delta) { readerZoomLevel = Math.max(0.5, Math.min(3, readerZoomLevel + delta)); if (readerPdfDoc) { await renderReaderPage(); } }
 
-    <div id="quizResultBox" class="infobox center-text" style="display:none;">
-        <h2>🎉 Quiz Complete!</h2>
-        <div class="resultcircle" id="quizResultCircle"><span id="quizResultPct">0%</span></div>
-        <p id="quizResultMsg"></p>
-        <button class="btn primary" onclick="quizReset()">🔄 New Quiz</button>
-    </div>
-</div>
+function populateSelect(selectId) {
+    var sel = document.getElementById(selectId); if (!sel) { return; }
+    var oldVal = sel.value; sel.innerHTML = '<option value="">-- Pick a Book --</option>';
+    for (var i = 0; i < allBooks.length; i++) { var b = allBooks[i]; var opt = document.createElement('option'); opt.value = b.id; opt.textContent = subjectEmoji(b.subject) + ' ' + b.title; sel.appendChild(opt); }
+    sel.value = oldVal;
+}
 
-<!-- ==================== FLASHCARDS ==================== -->
-<div id="flashcards" class="pg">
-    <div class="pghead">
-        <h2>🔤 Book Flashcards</h2>
-        <select id="fcBookPicker" class="smallsel" onchange="fcLoadBook(this.value)">
-            <option value="">-- Pick a Book --</option>
-        </select>
-    </div>
-    <div id="fcContent">
-        <p class="placeholder">🔤 Select a book to generate flashcards from it</p>
-    </div>
-    <div id="fcCardArea" style="display:none;">
-        <div class="fcwrap">
-            <div class="flashcard" id="fcTheCard" onclick="fcFlip()">
-                <div class="fcfront" id="fcFrontText"></div>
-                <div class="fcback" id="fcBackText"></div>
-            </div>
-        </div>
-        <p class="small center-text">👆 Tap to flip</p>
-        <div class="fcnav">
-            <button class="btn" onclick="fcGoPrev()">⬅️</button>
-            <span id="fcCounter">1 / 10</span>
-            <button class="btn" onclick="fcGoNext()">➡️</button>
-        </div>
-    </div>
-</div>
+// ============ MATH QUIZ ============
+var mathSC = 0, mathSW = 0;
+var mathQuizData = [
+    { q: '(a + b)² = ?', o: ['a²+b²', 'a²+2ab+b²', 'a²-2ab+b²', '2a²+2b²'], a: 1 },
+    { q: 'Trapezium area = ?', o: ['l×b', '½(a+b)×h', 'πr²', '½bh'], a: 1 },
+    { q: '15% of 200?', o: ['15', '20', '25', '30'], a: 3 },
+    { q: 'x+5=12, x=?', o: ['5', '6', '7', '8'], a: 2 },
+    { q: 'Cube vol side 3cm?', o: ['9cm³', '18cm³', '27cm³', '36cm³'], a: 2 },
+    { q: '√144 = ?', o: ['10', '11', '12', '13'], a: 2 },
+    { q: 'Quadrilateral angles?', o: ['180°', '270°', '360°', '540°'], a: 2 },
+    { q: '(a-b)(a+b) = ?', o: ['a²+b²', 'a²-b²', '2ab', 'a²+2ab+b²'], a: 1 }
+];
 
-<!-- ==================== NOTES ==================== -->
-<div id="notes" class="pg">
-    <div class="pghead">
-        <h2>📝 My Notes</h2>
-        <button class="btn" onclick="noteStartNew()">➕ New Note</button>
-    </div>
-    <div id="noteEditArea" class="infobox" style="display:none;">
-        <input type="text" id="noteEditTitle" class="forminput" placeholder="Note title...">
-        <textarea id="noteEditBody" class="forminput textarea" placeholder="Write your notes here..."></textarea>
-        <div class="btnrow">
-            <button class="btn primary" onclick="noteSave()">💾 Save</button>
-            <button class="btn" onclick="noteCancel()">Cancel</button>
-        </div>
-    </div>
-    <div id="noteListArea"></div>
-</div>
+function mathQuizLoad() {
+    var q = mathQuizData[Math.floor(Math.random() * mathQuizData.length)];
+    document.getElementById('mathQText').textContent = q.q;
+    document.getElementById('mathQFb').textContent = '';
+    var od = document.getElementById('mathQOpts'); od.innerHTML = '';
+    for (var i = 0; i < q.o.length; i++) {
+        var btn = document.createElement('button'); btn.textContent = q.o[i];
+        btn.setAttribute('data-idx', i); btn.setAttribute('data-ans', q.a);
+        btn.onclick = function() {
+            var idx = parseInt(this.getAttribute('data-idx')), ans = parseInt(this.getAttribute('data-ans'));
+            var allBtns = od.querySelectorAll('button');
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
+            var fb = document.getElementById('mathQFb');
+            if (idx === ans) { mathSC++; this.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { mathSW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('mathSC').textContent = mathSC; document.getElementById('mathSW').textContent = mathSW;
+        };
+        od.appendChild(btn);
+    }
+}
 
-<!-- ==================== TIMER ==================== -->
-<div id="timer" class="pg">
-    <h2>⏱️ Study Timer (Pomodoro)</h2>
-    <div class="timerwrap">
-        <div class="timerdisp" id="timerDisplay">25:00</div>
-        <div class="btnrow center-text">
-            <button class="btn green" onclick="timerStart()">▶️ Start</button>
-            <button class="btn orange" onclick="timerPause()">⏸ Pause</button>
-            <button class="btn red" onclick="timerReset()">🔄 Reset</button>
-        </div>
-        <div class="btnrow center-text" style="margin-top:14px;">
-            <button class="prebtn" onclick="timerSetMinutes(25)">📖 25m</button>
-            <button class="prebtn" onclick="timerSetMinutes(5)">☕ 5m</button>
-            <button class="prebtn" onclick="timerSetMinutes(15)">🎮 15m</button>
-            <button class="prebtn" onclick="timerSetMinutes(45)">📚 45m</button>
-        </div>
-    </div>
-</div>
+// ============ ENGLISH ============
+var engWords = [
+    { w: 'Benevolent', m: 'Kind, generous (दयालु)' }, { w: 'Eloquent', m: 'Fluent speaker (वाक्पटु)' },
+    { w: 'Resilient', m: 'Recovers quickly (लचीला)' }, { w: 'Diligent', m: 'Hardworking (परिश्रमी)' },
+    { w: 'Ambiguous', m: 'Double meaning (अस्पष्ट)' }, { w: 'Inevitable', m: 'Certain to happen (अनिवार्य)' },
+    { w: 'Compassion', m: 'Deep sympathy (करुणा)' }, { w: 'Perseverance', m: 'Continued effort (दृढ़ता)' },
+    { w: 'Magnificent', m: 'Extremely beautiful (शानदार)' }, { w: 'Catastrophe', m: 'Great disaster (विपत्ति)' },
+    { w: 'Reluctant', m: 'Unwilling (अनिच्छुक)' }, { w: 'Abundant', m: 'Large amounts (प्रचुर)' },
+    { w: 'Courageous', m: 'Brave (साहसी)' }, { w: 'Gratitude', m: 'Thankfulness (कृतज्ञता)' },
+    { w: 'Melancholy', m: 'Deep sadness (उदासी)' }
+];
+var engFCI = 0;
 
-<!-- ==================== UPLOAD DIALOG ==================== -->
-<div class="overlay" id="uploadOverlay">
-    <div class="dialog">
-        <div class="dialogtop">
-            <h3>📤 Upload PDF Book</h3>
-            <button class="xbtn" onclick="closeUploadDialog()">✕</button>
-        </div>
-        <div class="dialogbody">
-            <div id="uploadStep1">
-                <label class="filepicker" id="filePicker">
-                    <input type="file" id="realFileInput" accept=".pdf" onchange="handleFilePick(event)">
-                    <span style="font-size:2.5rem;">📄</span>
-                    <p><b>Click here to choose PDF</b></p>
-                    <p class="small">Or drag and drop your file</p>
-                </label>
-            </div>
-            <div id="uploadStep2" style="display:none;">
-                <div class="fileinfo">
-                    <span>📄</span>
-                    <div>
-                        <b id="pickedFileName">file.pdf</b><br>
-                        <small id="pickedFileSize">0 MB</small>
-                    </div>
-                    <button class="btn small" onclick="resetUploadDialog()">Change</button>
-                </div>
-                <label>Book Title *</label>
-                <input type="text" id="uploadTitle" class="forminput" placeholder="e.g. Maths NCERT">
-                <label>Subject *</label>
-                <select id="uploadSubject" class="forminput">
-                    <option value="">-- Pick Subject --</option>
-                    <option value="math">📐 Mathematics</option>
-                    <option value="english">📖 English</option>
-                    <option value="hindi">📝 Hindi</option>
-                    <option value="tamil">📗 Tamil</option>
-                    <option value="science">🔬 Science</option>
-                    <option value="social">🌍 Social Science</option>
-                    <option value="computer">💻 Computer</option>
-                    <option value="other">📦 Other</option>
-                </select>
-                <div id="uploadProgressArea" style="display:none;">
-                    <div class="progbar"><div class="progfill" id="uploadProgFill"></div></div>
-                    <p id="uploadStatusText" class="small center-text"></p>
-                </div>
-                <button class="btn primary fullwidth" id="uploadGoBtn" onclick="processUpload()" style="margin-top:12px;">📤 Upload & Process</button>
-            </div>
-        </div>
-    </div>
-</div>
+function engFCShow() {
+    document.getElementById('engFCF').textContent = engWords[engFCI].w;
+    document.getElementById('engFCB').textContent = engWords[engFCI].m;
+    document.getElementById('engFCCt').textContent = (engFCI + 1) + ' / ' + engWords.length;
+    document.getElementById('engFC').classList.remove('flipped');
+}
+function engFCFlip() { document.getElementById('engFC').classList.toggle('flipped'); }
+function engFCNext() { engFCI = (engFCI + 1) % engWords.length; engFCShow(); }
+function engFCPrev() { engFCI = (engFCI - 1 + engWords.length) % engWords.length; engFCShow(); }
 
-<!-- FAB -->
-<button class="fab" onclick="openUploadDialog()">📤</button>
+var currentPronunciation = 'US';
+function setPronunciation(type) {
+    currentPronunciation = type;
+    var usBtn = document.getElementById('pronUSBtn'), ukBtn = document.getElementById('pronUKBtn');
+    if (usBtn) { usBtn.classList.remove('active'); } if (ukBtn) { ukBtn.classList.remove('active'); }
+    if (type === 'US' && usBtn) { usBtn.classList.add('active'); }
+    if (type === 'UK' && ukBtn) { ukBtn.classList.add('active'); }
+    toast('Switched to ' + (type === 'US' ? '🇺🇸 American' : '🇬🇧 British'), 'info');
+}
 
-<!-- FOOTER -->
-<footer>
-    <p>Made with ❤️ by Samuel Giftson S | Grade VIII | St Christopher Academy</p>
-</footer>
+function speakWord(word) {
+    if (!window.speechSynthesis) { toast('Speech not supported!', 'err'); return; }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(word); u.rate = 0.85;
+    u.lang = currentPronunciation === 'US' ? 'en-US' : 'en-GB';
+    var voices = window.speechSynthesis.getVoices();
+    for (var i = 0; i < voices.length; i++) { if (voices[i].lang === u.lang) { u.voice = voices[i]; break; } }
+    window.speechSynthesis.speak(u);
+}
+function speakCurrentWord() { speakWord(engWords[engFCI].w); }
+if (window.speechSynthesis) { window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); }; }
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script>
-    var firebaseConfig = {
-        apiKey: "AIzaSyB8hUZpHBupXTDpJiyYjX7OyDI8RXaJLCk",
-        authDomain: "study-buddy-sam.firebaseapp.com",
-        projectId: "study-buddy-sam",
-        storageBucket: "study-buddy-sam.firebasestorage.app",
-        messagingSenderId: "1059129776704",
-        appId: "1:1059129776704:web:d5a604d7593e9fab791da5"
-    };
-    firebase.initializeApp(firebaseConfig);
-    var firebaseAuth = firebase.auth();
-    var firebaseDB = firebase.firestore();
-</script>
-<script src="script.js?v=3"></script>
-<script>
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then(function(reg) {
-            console.log('Service Worker registered!');
-        }).catch(function(err) {
-            console.log('SW registration failed:', err);
+var learnedWords = JSON.parse(localStorage.getItem('sbDictionary') || '[]');
+
+function markAsLearned() {
+    var cw = engWords[engFCI];
+    for (var i = 0; i < learnedWords.length; i++) { if (learnedWords[i].word === cw.w) { toast('"' + cw.w + '" already in dictionary!', 'warn'); return; } }
+    learnedWords.push({ word: cw.w, meaning: cw.m, date: new Date().toLocaleDateString() });
+    localStorage.setItem('sbDictionary', JSON.stringify(learnedWords));
+    renderDictionary(); syncDictionaryToCloud();
+    toast('✅ "' + cw.w + '" added!', 'ok');
+}
+
+function renderDictionary(filter) {
+    var container = document.getElementById('dictionaryList'), countEl = document.getElementById('dictCount');
+    if (!container) { return; }
+    if (countEl) { countEl.textContent = learnedWords.length + ' word' + (learnedWords.length !== 1 ? 's' : '') + ' learned'; }
+    if (learnedWords.length === 0) { container.innerHTML = '<p class="placeholder">No words learned yet!</p>'; return; }
+    var wordsToShow = learnedWords;
+    if (filter) { var lf = filter.toLowerCase(); wordsToShow = learnedWords.filter(function(w) { return w.word.toLowerCase().indexOf(lf) !== -1 || w.meaning.toLowerCase().indexOf(lf) !== -1; }); }
+    if (wordsToShow.length === 0) { container.innerHTML = '<p class="placeholder">No matching words</p>'; return; }
+    var html = '';
+    for (var j = wordsToShow.length - 1; j >= 0; j--) {
+        var w = wordsToShow[j];
+        html += '<div class="dict-word"><div class="dict-word-text"><h4>' + w.word + '</h4><p>' + w.meaning + '</p><span class="dict-word-date">📅 ' + w.date + '</span></div><div class="dict-word-actions"><button class="dict-speak-btn" onclick="speakWord(\'' + w.word + '\')">🔊</button><button class="dict-remove-btn" onclick="removeFromDictionary(\'' + w.word + '\')">✕</button></div></div>';
+    }
+    container.innerHTML = html;
+}
+
+function removeFromDictionary(word) { learnedWords = learnedWords.filter(function(w) { return w.word !== word; }); localStorage.setItem('sbDictionary', JSON.stringify(learnedWords)); renderDictionary(); }
+function filterDictionary(s) { renderDictionary(s); }
+function clearDictionary() { if (!confirm('Clear all?')) { return; } learnedWords = []; localStorage.setItem('sbDictionary', '[]'); renderDictionary(); }
+
+var engSC = 0, engSW = 0;
+var engQuizData = [
+    { q: 'Passive: "She writes a letter"?', o: ['A letter is written by her', 'A letter was written', 'She is written', 'Letter writes she'], a: 0 },
+    { q: 'Correct article: "__ honest man"', o: ['A', 'An', 'The', 'No article'], a: 1 },
+    { q: '"Happiness" noun type?', o: ['Common', 'Proper', 'Abstract', 'Collective'], a: 2 },
+    { q: '"Can" expresses:', o: ['Permission', 'Ability', 'Obligation', 'Possibility'], a: 1 },
+    { q: 'Synonym of "Brave":', o: ['Timid', 'Courageous', 'Lazy', 'Weak'], a: 1 },
+    { q: 'Antonym of "Ancient":', o: ['Old', 'Modern', 'Historic', 'Traditional'], a: 1 },
+    { q: '"What a beautiful day!" is:', o: ['Declarative', 'Interrogative', 'Imperative', 'Exclamatory'], a: 3 },
+    { q: 'Which modal = necessity?', o: ['Can', 'May', 'Must', 'Would'], a: 2 }
+];
+
+function engQuizLoad() {
+    var q = engQuizData[Math.floor(Math.random() * engQuizData.length)];
+    document.getElementById('engQText').textContent = q.q;
+    document.getElementById('engQFb').textContent = '';
+    var od = document.getElementById('engQOpts'); od.innerHTML = '';
+    for (var i = 0; i < q.o.length; i++) {
+        var btn = document.createElement('button'); btn.textContent = q.o[i];
+        btn.setAttribute('data-idx', i); btn.setAttribute('data-ans', q.a);
+        btn.onclick = function() {
+            var idx = parseInt(this.getAttribute('data-idx')), ans = parseInt(this.getAttribute('data-ans'));
+            var allBtns = od.querySelectorAll('button');
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
+            var fb = document.getElementById('engQFb');
+            if (idx === ans) { engSC++; this.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { engSW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('engSC').textContent = engSC; document.getElementById('engSW').textContent = engSW;
+        };
+        od.appendChild(btn);
+    }
+}
+
+// ============ HINDI ============
+var hindiWords = [
+    { w: 'अभिलाषा', m: 'Desire' }, { w: 'अद्भुत', m: 'Amazing' }, { w: 'विद्यालय', m: 'School' },
+    { w: 'परिश्रम', m: 'Hard Work' }, { w: 'साहस', m: 'Courage' }, { w: 'विज्ञान', m: 'Science' },
+    { w: 'गणित', m: 'Mathematics' }, { w: 'पर्यावरण', m: 'Environment' }, { w: 'स्वतंत्रता', m: 'Freedom' },
+    { w: 'अनुशासन', m: 'Discipline' }, { w: 'सहानुभूति', m: 'Sympathy' }, { w: 'प्रयत्न', m: 'Effort' },
+    { w: 'उत्साह', m: 'Enthusiasm' }, { w: 'कर्तव्य', m: 'Duty' }, { w: 'सफलता', m: 'Success' }
+];
+var hindiFCI = 0;
+function hindiFCShow() {
+    document.getElementById('hindiFCF').textContent = hindiWords[hindiFCI].w;
+    document.getElementById('hindiFCB').textContent = hindiWords[hindiFCI].m;
+    document.getElementById('hindiFCCt').textContent = (hindiFCI + 1) + ' / ' + hindiWords.length;
+    document.getElementById('hindiFC').classList.remove('flipped');
+}
+function hindiFCFlip() { document.getElementById('hindiFC').classList.toggle('flipped'); }
+function hindiFCNext() { hindiFCI = (hindiFCI + 1) % hindiWords.length; hindiFCShow(); }
+function hindiFCPrev() { hindiFCI = (hindiFCI - 1 + hindiWords.length) % hindiWords.length; hindiFCShow(); }
+
+var hindiSC = 0, hindiSW = 0;
+var hindiQuizData = [
+    { q: '"सूर्य" का पर्यायवाची?', o: ['चंद्र', 'दिनकर', 'तारा', 'नभ'], a: 1 },
+    { q: '"अंधकार" का विलोम?', o: ['रात', 'प्रकाश', 'काला', 'अँधेरा'], a: 1 },
+    { q: '"राम" कौन सी संज्ञा?', o: ['जातिवाचक', 'व्यक्तिवाचक', 'भाववाचक', 'समूहवाचक'], a: 1 },
+    { q: '"सुंदर" शब्द क्या है?', o: ['संज्ञा', 'सर्वनाम', 'विशेषण', 'क्रिया'], a: 2 },
+    { q: '"जल" का पर्यायवाची?', o: ['अग्नि', 'पानी', 'वायु', 'धरा'], a: 1 }
+];
+
+function hindiQuizLoad() {
+    var q = hindiQuizData[Math.floor(Math.random() * hindiQuizData.length)];
+    document.getElementById('hindiQText').textContent = q.q;
+    document.getElementById('hindiQFb').textContent = '';
+    var od = document.getElementById('hindiQOpts'); od.innerHTML = '';
+    for (var i = 0; i < q.o.length; i++) {
+        var btn = document.createElement('button'); btn.textContent = q.o[i];
+        btn.setAttribute('data-idx', i); btn.setAttribute('data-ans', q.a);
+        btn.onclick = function() {
+            var idx = parseInt(this.getAttribute('data-idx')), ans = parseInt(this.getAttribute('data-ans'));
+            var allBtns = od.querySelectorAll('button');
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
+            var fb = document.getElementById('hindiQFb');
+            if (idx === ans) { hindiSC++; this.classList.add('correct'); fb.textContent = '✅ सही!'; fb.style.color = 'var(--ok)'; }
+            else { hindiSW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ गलत!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('hindiSC').textContent = hindiSC; document.getElementById('hindiSW').textContent = hindiSW;
+        };
+        od.appendChild(btn);
+    }
+}
+
+// ============ TAMIL ============
+var tamilWords = [
+    { t: 'பள்ளி', e: 'School' }, { t: 'புத்தகம்', e: 'Book' }, { t: 'ஆசிரியர்', e: 'Teacher' },
+    { t: 'மாணவன்', e: 'Student' }, { t: 'கணிதம்', e: 'Mathematics' }, { t: 'அறிவியல்', e: 'Science' },
+    { t: 'வரலாறு', e: 'History' }, { t: 'நீர்', e: 'Water' }, { t: 'தீ', e: 'Fire' },
+    { t: 'காற்று', e: 'Wind' }, { t: 'பூமி', e: 'Earth' }, { t: 'வானம்', e: 'Sky' },
+    { t: 'மழை', e: 'Rain' }, { t: 'சூரியன்', e: 'Sun' }, { t: 'நிலா', e: 'Moon' },
+    { t: 'அன்பு', e: 'Love' }, { t: 'நன்றி', e: 'Thank you' }, { t: 'வணக்கம்', e: 'Hello' },
+    { t: 'வீடு', e: 'House' }, { t: 'உணவு', e: 'Food' }, { t: 'மரம்', e: 'Tree' },
+    { t: 'பூ', e: 'Flower' }, { t: 'பழம்', e: 'Fruit' }, { t: 'கடல்', e: 'Sea' },
+    { t: 'மலை', e: 'Mountain' }, { t: 'நதி', e: 'River' }, { t: 'விலங்கு', e: 'Animal' },
+    { t: 'பறவை', e: 'Bird' }, { t: 'மீன்', e: 'Fish' }, { t: 'பசு', e: 'Cow' },
+    { t: 'நாய்', e: 'Dog' }, { t: 'பூனை', e: 'Cat' }, { t: 'குழந்தை', e: 'Child' },
+    { t: 'தாய்', e: 'Mother' }, { t: 'தந்தை', e: 'Father' }, { t: 'நண்பன்', e: 'Friend' },
+    { t: 'கண்', e: 'Eye' }, { t: 'வாய்', e: 'Mouth' }, { t: 'இதயம்', e: 'Heart' },
+    { t: 'அறிவு', e: 'Knowledge' }
+];
+var tamilFCIndex = 0;
+function tamilShowFC() {
+    var w = tamilWords[tamilFCIndex];
+    document.getElementById('tamilFront').textContent = w.t;
+    document.getElementById('tamilBack').textContent = w.e;
+    document.getElementById('tamilCounter').textContent = (tamilFCIndex + 1) + ' / ' + tamilWords.length;
+    document.getElementById('tamilCard').classList.remove('flipped');
+}
+function tamilFlip() { document.getElementById('tamilCard').classList.toggle('flipped'); }
+function tamilNext() { tamilFCIndex = (tamilFCIndex + 1) % tamilWords.length; tamilShowFC(); }
+function tamilPrev() { tamilFCIndex = (tamilFCIndex - 1 + tamilWords.length) % tamilWords.length; tamilShowFC(); }
+
+var tamilQuizC = 0, tamilQuizW = 0;
+var tamilQuizData = [
+    { q: '"பள்ளி" means?', o: ['Hospital', 'School', 'Temple', 'Market'], a: 1 },
+    { q: '"Water" in Tamil?', o: ['தீ', 'காற்று', 'நீர்', 'மண்'], a: 2 },
+    { q: 'Total Tamil letters?', o: ['247', '200', '300', '150'], a: 0 },
+    { q: 'Vowels count?', o: ['18', '12', '216', '10'], a: 1 },
+    { q: 'Consonants count?', o: ['12', '216', '20', '18'], a: 3 },
+    { q: '"சூரியன்" means?', o: ['Moon', 'Star', 'Sun', 'Cloud'], a: 2 },
+    { q: '"ஆசிரியர்" means?', o: ['Student', 'Teacher', 'Doctor', 'Farmer'], a: 1 },
+    { q: 'ஆய்த எழுத்து?', o: ['அ', 'க', 'ஃ', 'ங'], a: 2 },
+    { q: '"நன்றி" means?', o: ['Sorry', 'Please', 'Thank you', 'Welcome'], a: 2 },
+    { q: '"அறிவே ஆற்றல்"?', o: ['Money=power', 'Knowledge=power', 'Unity=strength', 'Health=wealth'], a: 1 },
+    { q: '"மலை" means?', o: ['River', 'Sea', 'Mountain', 'Forest'], a: 2 },
+    { q: '"பறவை" means?', o: ['Fish', 'Bird', 'Animal', 'Insect'], a: 1 },
+    { q: '"தாய்" means?', o: ['Father', 'Mother', 'Sister', 'Brother'], a: 1 }
+];
+
+function tamilQuizLoad() {
+    var q = tamilQuizData[Math.floor(Math.random() * tamilQuizData.length)];
+    document.getElementById('tamilQText').textContent = q.q;
+    document.getElementById('tamilQFb').textContent = '';
+    var od = document.getElementById('tamilQOpts'); od.innerHTML = '';
+    for (var i = 0; i < q.o.length; i++) {
+        var btn = document.createElement('button'); btn.textContent = q.o[i];
+        btn.setAttribute('data-idx', i); btn.setAttribute('data-ans', q.a);
+        btn.onclick = function() {
+            var idx = parseInt(this.getAttribute('data-idx')), ans = parseInt(this.getAttribute('data-ans'));
+            var allBtns = od.querySelectorAll('button');
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
+            var fb = document.getElementById('tamilQFb');
+            if (idx === ans) { tamilQuizC++; this.classList.add('correct'); fb.textContent = '✅ சரி!'; fb.style.color = 'var(--ok)'; }
+            else { tamilQuizW++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ தவறு!'; fb.style.color = 'var(--e)'; }
+            document.getElementById('tamilScoreC').textContent = tamilQuizC; document.getElementById('tamilScoreW').textContent = tamilQuizW;
+        };
+        od.appendChild(btn);
+    }
+}
+
+// ============ SMART QUIZ ============
+var quizQuestions = [], quizIndex = 0, quizCorrect = 0, quizWrong = 0;
+
+function goQuizFromLib(id) { navigate('quiz'); setTimeout(function() { document.getElementById('quizBookPicker').value = id; quizBookChanged(); }, 100); }
+
+function quizBookChanged() {
+    var id = document.getElementById('quizBookPicker').value;
+    var rangeDiv = document.getElementById('quizPageRange');
+    if (!id) { rangeDiv.style.display = 'none'; return; }
+    var book = allBooks.find(function(b) { return b.id === id; });
+    if (!book) { rangeDiv.style.display = 'none'; return; }
+    rangeDiv.style.display = 'block';
+    document.getElementById('quizFrom').value = 1; document.getElementById('quizFrom').max = book.pages;
+    document.getElementById('quizTo').value = Math.min(book.pages, 10); document.getElementById('quizTo').max = book.pages;
+}
+
+function quizStart() {
+    var id = document.getElementById('quizBookPicker').value;
+    if (!id) { toast('Pick a book!', 'warn'); return; }
+    var book = allBooks.find(function(b) { return b.id === id; }); if (!book) { return; }
+    var from = Math.max(0, parseInt(document.getElementById('quizFrom').value) - 1);
+    var to = Math.min(book.pages, parseInt(document.getElementById('quizTo').value));
+    var numQ = parseInt(document.getElementById('quizNumQ').value);
+    if (from >= to) { toast('Invalid page range!', 'warn'); return; }
+    var chapterText = book.pageTexts.slice(from, to).join(' ').replace(/\s+/g, ' ').trim();
+    if (chapterText.length < 80) { toast('Not enough text!', 'warn'); return; }
+    quizQuestions = generateQuestions(chapterText, numQ);
+    quizIndex = 0; quizCorrect = 0; quizWrong = 0;
+    if (quizQuestions.length === 0) { toast('Could not generate questions.', 'warn'); return; }
+    document.getElementById('quizSetupBox').style.display = 'none';
+    document.getElementById('quizPlayBox').style.display = 'block';
+    document.getElementById('quizResultBox').style.display = 'none';
+    showQuizQuestion(); toast(quizQuestions.length + ' questions ready!', 'ok');
+}
+
+function generateQuestions(text, count) {
+    var results = [];
+    var sentences = text.split(/[.!?\n]+/).map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 20 && s.length < 250; });
+    if (sentences.length < 3) { return results; }
+    var stopList = 'the and for that this with from have been were they their which about would could should these those also into some than then only very more most such each because between through during without another does will just over under both same many much while since until upon here still even well back down like make made know take come give look find want tell good great first last long little around every never might shall a an is are was in on to of it';
+    var stops = stopList.split(' ');
+    var freq = {}; var words = text.split(/\s+/);
+    for (var wi = 0; wi < words.length; wi++) { var clean = words[wi].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, ''); if (clean.length > 3 && stops.indexOf(clean) === -1) { freq[clean] = (freq[clean] || 0) + 1; } }
+    var keywords = []; for (var word in freq) { if (freq[word] >= 2 && freq[word] <= 25) { keywords.push(word); } }
+    keywords.sort(function(a, b) { return (freq[b] || 0) - (freq[a] || 0); }); keywords = keywords.slice(0, 50);
+    var used = {};
+    for (var si = 0; si < sentences.length && results.length < Math.ceil(count * 0.5); si++) {
+        var sent = sentences[si]; if (used[sent]) { continue; }
+        var sWords = sent.split(/\s+/); if (sWords.length < 5) { continue; }
+        var bestWord = null, bestIndex = -1;
+        for (var bwi = 1; bwi < sWords.length - 1; bwi++) { var bwClean = sWords[bwi].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, ''); if (keywords.indexOf(bwClean) !== -1 && bwClean.length > 4) { bestWord = sWords[bwi]; bestIndex = bwi; break; } }
+        if (!bestWord) { continue; } used[sent] = true;
+        var blanked = ''; for (var bli = 0; bli < sWords.length; bli++) { blanked += (bli === bestIndex ? '________ ' : sWords[bli] + ' '); } blanked = blanked.trim();
+        var correctAns = bestWord.replace(/[^a-zA-Z\u0900-\u097F\s]/g, '');
+        var wrongAns = []; for (var wai = 0; wai < keywords.length && wrongAns.length < 3; wai++) { if (keywords[wai] !== correctAns.toLowerCase()) { wrongAns.push(keywords[wai]); } }
+        if (wrongAns.length < 3) { continue; }
+        var options = [correctAns, wrongAns[0], wrongAns[1], wrongAns[2]]; options.sort(function() { return Math.random() - 0.5; });
+        results.push({ question: 'Fill in the blank:\n\n"' + blanked + '"', options: options, answer: options.indexOf(correctAns), type: 'Fill in Blank', explanation: 'Answer: ' + correctAns });
+    }
+    for (var ti = 0; ti < sentences.length && results.length < Math.ceil(count * 0.8); ti++) {
+        var tfSent = sentences[ti]; if (used[tfSent] || tfSent.length > 160 || Math.random() > 0.5) { continue; } used[tfSent] = true;
+        var isTrue = Math.random() > 0.4; var displaySent = tfSent;
+        if (!isTrue) { var tfW = tfSent.split(/\s+/); for (var ri = 1; ri < tfW.length - 1; ri++) { var rc = tfW[ri].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, ''); if (keywords.indexOf(rc) !== -1 && rc.length > 4) { for (var rj = 0; rj < keywords.length; rj++) { if (keywords[rj] !== rc) { tfW[ri] = keywords[rj]; break; } } break; } } displaySent = tfW.join(' '); }
+        results.push({ question: 'True or False?\n\n"' + displaySent + '"', options: ['True ✅', 'False ❌'], answer: isTrue ? 0 : 1, type: 'True/False', explanation: isTrue ? 'Correct!' : 'Original: "' + tfSent + '"' });
+    }
+    for (var ci = 0; ci < 5 && results.length < count; ci++) {
+        var compSent = sentences[Math.floor(Math.random() * sentences.length)]; if (used[compSent] || compSent.length > 120) { continue; } used[compSent] = true;
+        var preview = compSent.length > 70 ? compSent.substring(0, 70) + '...' : compSent;
+        var compOpts = [preview, 'Not mentioned in text', 'From another chapter', 'Not discussed']; compOpts.sort(function() { return Math.random() - 0.5; });
+        results.push({ question: 'Which is from your book?', options: compOpts, answer: compOpts.indexOf(preview), type: 'Comprehension', explanation: 'Found: "' + compSent + '"' });
+    }
+    results.sort(function() { return Math.random() - 0.5; }); return results.slice(0, count);
+}
+
+function showQuizQuestion() {
+    if (quizIndex >= quizQuestions.length) { showQuizResults(); return; }
+    var q = quizQuestions[quizIndex];
+    document.getElementById('quizProgFill').style.width = (quizIndex / quizQuestions.length * 100) + '%';
+    document.getElementById('quizProgLabel').textContent = 'Q' + (quizIndex + 1) + ' / ' + quizQuestions.length;
+    document.getElementById('quizTypeBadge').textContent = q.type;
+    document.getElementById('quizQuestionText').textContent = q.question;
+    document.getElementById('quizFeedback').textContent = '';
+    var expEl = document.getElementById('quizExplain'); expEl.textContent = ''; expEl.classList.remove('visible');
+    document.getElementById('quizNextBtn').style.display = 'none';
+    var optDiv = document.getElementById('quizOptionsArea'); optDiv.innerHTML = '';
+    for (var i = 0; i < q.options.length; i++) {
+        var btn = document.createElement('button'); btn.textContent = q.options[i];
+        btn.setAttribute('data-idx', i); btn.setAttribute('data-ans', q.answer); btn.setAttribute('data-exp', q.explanation || '');
+        btn.onclick = function() {
+            var idx = parseInt(this.getAttribute('data-idx')), ans = parseInt(this.getAttribute('data-ans')), exp = this.getAttribute('data-exp');
+            var allBtns = optDiv.querySelectorAll('button');
+            for (var j = 0; j < allBtns.length; j++) { allBtns[j].onclick = null; allBtns[j].classList.add('locked'); }
+            var fb = document.getElementById('quizFeedback');
+            if (idx === ans) { quizCorrect++; this.classList.add('correct'); fb.textContent = '✅ Correct!'; fb.style.color = 'var(--ok)'; }
+            else { quizWrong++; this.classList.add('wrong'); allBtns[ans].classList.add('correct'); fb.textContent = '❌ Wrong!'; fb.style.color = 'var(--e)'; }
+            if (exp) { var exEl = document.getElementById('quizExplain'); exEl.textContent = '💡 ' + exp; exEl.classList.add('visible'); }
+            updateQuizScore(); document.getElementById('quizNextBtn').style.display = 'inline-block';
+        };
+        optDiv.appendChild(btn);
+    }
+    updateQuizScore();
+}
+
+function quizNextQuestion() { quizIndex++; showQuizQuestion(); }
+function updateQuizScore() { document.getElementById('quizCorrectNum').textContent = quizCorrect; document.getElementById('quizWrongNum').textContent = quizWrong; var t = quizCorrect + quizWrong; document.getElementById('quizPercentNum').textContent = t > 0 ? Math.round(quizCorrect / t * 100) + '%' : '0%'; }
+
+function showQuizResults() {
+    document.getElementById('quizPlayBox').style.display = 'none'; document.getElementById('quizResultBox').style.display = 'block';
+    var total = quizCorrect + quizWrong, pct = total > 0 ? Math.round(quizCorrect / total * 100) : 0;
+    document.getElementById('quizResultPct').textContent = pct + '%';
+    var circle = document.getElementById('quizResultCircle');
+    if (pct >= 80) { circle.style.background = 'linear-gradient(135deg,#10b981,#059669)'; document.getElementById('quizResultMsg').textContent = '🌟 Excellent!'; }
+    else if (pct >= 50) { circle.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)'; document.getElementById('quizResultMsg').textContent = '👍 Good effort!'; }
+    else { circle.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)'; document.getElementById('quizResultMsg').textContent = '📖 Keep studying!'; }
+    stats.q++; stats.c += quizCorrect; stats.a += total;
+    localStorage.setItem('sbstats', JSON.stringify(stats)); updateDashboard(); syncStatsToCloud();
+}
+
+function quizReset() { document.getElementById('quizSetupBox').style.display = 'block'; document.getElementById('quizPlayBox').style.display = 'none'; document.getElementById('quizResultBox').style.display = 'none'; }
+
+// ============ BOOK FLASHCARDS ============
+var fcCards = [], fcIndex = 0;
+
+function goFCFromLib(id) { navigate('flashcards'); setTimeout(function() { document.getElementById('fcBookPicker').value = id; fcLoadBook(id); }, 100); }
+
+function fcLoadBook(id) {
+    if (!id) { return; }
+    var book = allBooks.find(function(b) { return b.id === id; });
+    if (!book || !book.fullText || book.fullText.length < 80) { document.getElementById('fcContent').innerHTML = '<p class="placeholder">⚠️ Not enough text</p>'; document.getElementById('fcCardArea').style.display = 'none'; return; }
+    fcCards = [];
+    var sents = book.fullText.split(/[.!?\n]+/).filter(function(s) { return s.trim().length > 15 && s.trim().length < 200; });
+    var freqMap = {}; var allW = book.fullText.split(/\s+/);
+    for (var i = 0; i < allW.length; i++) { var c = allW[i].toLowerCase().replace(/[^a-zA-Z\u0900-\u097F]/g, ''); if (c.length > 4) { freqMap[c] = (freqMap[c] || 0) + 1; } }
+    var kws = []; for (var w in freqMap) { if (freqMap[w] >= 2 && freqMap[w] <= 15) { kws.push(w); } }
+    kws.sort(function(a, b) { return (freqMap[b] || 0) - (freqMap[a] || 0); }); kws = kws.slice(0, 25);
+    var usedKW = {};
+    for (var si = 0; si < sents.length; si++) {
+        if (fcCards.length >= 20) { break; } var trimmed = sents[si].trim();
+        for (var ki = 0; ki < kws.length; ki++) { if (usedKW[kws[ki]]) { continue; } if (trimmed.toLowerCase().indexOf(kws[ki]) !== -1) { var back = trimmed.length > 120 ? trimmed.substring(0, 120) + '...' : trimmed; fcCards.push({ front: kws[ki].charAt(0).toUpperCase() + kws[ki].slice(1), back: back }); usedKW[kws[ki]] = true; break; } }
+    }
+    if (fcCards.length === 0) { document.getElementById('fcContent').innerHTML = '<p class="placeholder">⚠️ Cannot generate flashcards</p>'; document.getElementById('fcCardArea').style.display = 'none'; return; }
+    fcIndex = 0; document.getElementById('fcContent').innerHTML = ''; document.getElementById('fcCardArea').style.display = 'block';
+    fcShowCard(); toast(fcCards.length + ' flashcards ready!', 'ok');
+}
+
+function fcShowCard() { var card = fcCards[fcIndex]; document.getElementById('fcFrontText').textContent = card.front; document.getElementById('fcBackText').textContent = card.back; document.getElementById('fcCounter').textContent = (fcIndex + 1) + ' / ' + fcCards.length; document.getElementById('fcTheCard').classList.remove('flipped'); }
+function fcFlip() { document.getElementById('fcTheCard').classList.toggle('flipped'); }
+function fcGoNext() { fcIndex = (fcIndex + 1) % fcCards.length; fcShowCard(); }
+function fcGoPrev() { fcIndex = (fcIndex - 1 + fcCards.length) % fcCards.length; fcShowCard(); }
+
+// ============ NOTES ============
+var editingNoteId = null;
+function noteStartNew() { editingNoteId = null; document.getElementById('noteEditArea').style.display = 'block'; document.getElementById('noteEditTitle').value = ''; document.getElementById('noteEditBody').value = ''; }
+function noteCancel() { document.getElementById('noteEditArea').style.display = 'none'; }
+
+async function noteSave() {
+    var title = document.getElementById('noteEditTitle').value.trim(), body = document.getElementById('noteEditBody').value.trim();
+    if (!title || !body) { toast('Enter title and content!', 'warn'); return; }
+    var note;
+    if (editingNoteId) { var existing = allNotes.find(function(n) { return n.id === editingNoteId; }); if (existing) { existing.title = title; existing.body = body; existing.modified = new Date().toLocaleDateString(); await dbSave('notes', existing); note = existing; } }
+    else { note = { id: 'note_' + Date.now(), title: title, body: body, date: new Date().toLocaleDateString(), modified: new Date().toLocaleDateString() }; allNotes.push(note); await dbSave('notes', note); }
+    noteCancel(); renderNotes(); if (note) { saveToCloud('notes', note); } toast('Note saved!', 'ok');
+}
+
+function renderNotes() {
+    var container = document.getElementById('noteListArea');
+    if (allNotes.length === 0) { container.innerHTML = '<p class="placeholder">📝 No notes yet. Click "+ New Note" to start!</p>'; return; }
+    var html = '';
+    for (var i = allNotes.length - 1; i >= 0; i--) { var n = allNotes[i]; html += '<div class="notecard" onclick="noteEdit(\'' + n.id + '\')"><button class="notedel" onclick="event.stopPropagation();noteDelete(\'' + n.id + '\')">✕</button><h4>' + n.title + '</h4><p>' + n.body.substring(0, 100) + (n.body.length > 100 ? '...' : '') + '</p><p class="small">📅 ' + (n.modified || n.date) + '</p></div>'; }
+    container.innerHTML = html;
+}
+
+function noteEdit(id) { var note = allNotes.find(function(n) { return n.id === id; }); if (!note) { return; } editingNoteId = id; document.getElementById('noteEditArea').style.display = 'block'; document.getElementById('noteEditTitle').value = note.title; document.getElementById('noteEditBody').value = note.body; }
+
+async function noteDelete(id) { if (!confirm('Delete this note?')) { return; } await dbRemove('notes', id); allNotes = allNotes.filter(function(n) { return n.id !== id; }); renderNotes(); deleteFromCloud('notes', id); toast('Deleted!', 'info'); }
+
+// ============ TIMER ============
+var timerInterval = null, timerSecondsLeft = 25 * 60, timerTotalSeconds = 25 * 60;
+
+function timerUpdateDisplay() { var mins = Math.floor(timerSecondsLeft / 60).toString().padStart(2, '0'); var secs = (timerSecondsLeft % 60).toString().padStart(2, '0'); document.getElementById('timerDisplay').textContent = mins + ':' + secs; }
+
+function timerStart() { if (timerInterval) { return; } timerInterval = setInterval(function() { if (timerSecondsLeft <= 0) { clearInterval(timerInterval); timerInterval = null; toast('⏰ Time is up!', 'ok'); return; } timerSecondsLeft--; timerUpdateDisplay(); }, 1000); }
+function timerPause() { clearInterval(timerInterval); timerInterval = null; }
+function timerReset() { timerPause(); timerSecondsLeft = timerTotalSeconds; timerUpdateDisplay(); }
+function timerSetMinutes(mins) { timerPause(); timerSecondsLeft = mins * 60; timerTotalSeconds = mins * 60; timerUpdateDisplay(); }
+
+// ============ DRAG & DROP ============
+document.addEventListener('DOMContentLoaded', function() {
+    var picker = document.getElementById('filePicker');
+    if (picker) {
+        picker.addEventListener('dragover', function(e) { e.preventDefault(); });
+        picker.addEventListener('drop', function(e) {
+            e.preventDefault(); var file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                currentFile = file; document.getElementById('uploadStep1').style.display = 'none'; document.getElementById('uploadStep2').style.display = 'block';
+                document.getElementById('pickedFileName').textContent = file.name; document.getElementById('pickedFileSize').textContent = (file.size / 1048576).toFixed(1) + ' MB';
+                document.getElementById('uploadTitle').value = file.name.replace('.pdf', '').replace(/[_-]+/g, ' '); toast('File dropped!', 'info');
+            } else { toast('Please drop a PDF!', 'err'); }
         });
     }
-</script>
-</body>
-</html>
+});
+
+// ============ INIT ============
+window.onload = async function() {
+    console.log('StudyBuddy starting...');
+
+    firebaseAuth.onAuthStateChanged(function(user) {
+        console.log('Auth state changed:', user ? user.email : 'No user');
+        if (user) {
+            currentUser = user;
+            var firstName = user.displayName ? user.displayName.split(' ')[0] : 'Student';
+            localStorage.setItem('sbName', firstName);
+            var popup = document.getElementById('namePopup'); if (popup) { popup.classList.add('hidden'); }
+            showUserProfile(user); updateGreeting(); loadCloudData(user.uid);
+        } else {
+            currentUser = null;
+            var profileDiv = document.getElementById('userProfile');
+            if (profileDiv) { profileDiv.style.display = 'none'; profileDiv.classList.remove('visible'); }
+            var savedName = localStorage.getItem('sbName');
+            if (savedName) { var popup = document.getElementById('namePopup'); if (popup) { popup.classList.add('hidden'); } updateGreeting(); }
+        }
+    });
+
+    if (localStorage.getItem('sbtheme') === 'dark') { document.body.classList.add('dark-theme'); document.querySelector('.themebtn').textContent = '☀️'; }
+
+    var quotes = [
+        '"Education is the most powerful weapon." — Nelson Mandela 🌍',
+        '"The expert was once a beginner." 🌱',
+        '"Believe you can and you\'re halfway there." — Theodore Roosevelt 💪',
+        '"Practice makes perfect!" 💪',
+        '"Success is not final, failure is not fatal — it is the courage to continue that counts." — Winston Churchill 🏆',
+        '"The only way to do great work is to love what you do." — Steve Jobs 🍎',
+        '"It does not matter how slowly you go, as long as you do not stop." — Confucius 🐢',
+        '"The future belongs to those who believe in the beauty of their dreams." — Eleanor Roosevelt ✨',
+        '"A journey of a thousand miles begins with a single step." — Lao Tzu 👣',
+        '"Knowledge is power." — Francis Bacon 📚',
+        '"The roots of education are bitter, but the fruit is sweet." — Aristotle 🍎',
+        '"Live as if you were to die tomorrow. Learn as if you were to live forever." — Mahatma Gandhi 🕊️',
+        '"In the middle of difficulty lies opportunity." — Albert Einstein 💡',
+        '"The beautiful thing about learning is that no one can take it away from you." — B.B. King 🎵',
+        '"Don\'t let what you cannot do interfere with what you can do." — John Wooden 🏀',
+        '"You are never too old to set another goal or to dream a new dream." — C.S. Lewis 🌟',
+        '"The mind is not a vessel to be filled, but a fire to be kindled." — Plutarch 🔥',
+        '"Strive for progress, not perfection." 📈',
+        '"Small daily improvements are the key to long-term results." 🔑',
+        '"Your limitation — it\'s only your imagination." 🧠',
+        '"Push yourself, because no one else is going to do it for you." 💥',
+        '"Great things never come from comfort zones." 🚀',
+        '"Dream it. Wish it. Do it." ⭐',
+        '"Hard work beats talent when talent doesn\'t work hard." — Tim Notke 🏅',
+        '"Don\'t watch the clock; do what it does — keep going." — Sam Levenson ⏰',
+        '"Mistakes are proof that you are trying." ✏️',
+        '"Today a reader, tomorrow a leader." — Margaret Fuller 👑',
+        '"The more that you read, the more things you will know." — Dr. Seuss 📚',
+        '"An investment in knowledge pays the best interest." — Benjamin Franklin 💰',
+        '"Pure mathematics is the world\'s best game." — Richard Feynman 📐',
+        '"The important thing is to never stop questioning." — Albert Einstein ❓',
+        '"Genius is 1% inspiration and 99% perspiration." — Thomas Edison 💡',
+        '"विद्या सबसे बड़ा धन है। — Knowledge is the greatest wealth" 📖',
+        '"मेहनत का फल मीठा होता है। — The fruit of hard work is sweet" 🍯',
+        '"कर्म करो, फल की चिंता मत करो। — Do your duty, don\'t worry about results" — Bhagavad Gita 🙏',
+        '"सपने वो नहीं जो सोते वक्त आए, सपने वो हैं जो सोने न दे।" — APJ Abdul Kalam 🌟',
+        '"असफलता सफलता की पहली सीढ़ी है। — Failure is the first step to success" 🪜',
+        '"கற்றது கைமண் அளவு, கல்லாதது உலகளவு — What you know is a handful, what you don\'t is the world" 📗',
+        '"அறிவே ஆற்றல் — Knowledge is Power" 📗',
+        '"உழைப்பே உயர்வு — Hard work leads to greatness" 💪',
+        '"கல்வி கரையில கற்பவர் நாள் சில — Knowledge is endless, life is short" ⏳',
+        '"முயற்சி திருவினையாக்கும் — Effort brings success" — Thirukkural ✨'
+    ];
+    var quoteEl = document.getElementById('homeQuote');
+    if (quoteEl) { quoteEl.textContent = quotes[Math.floor(Math.random() * quotes.length)]; }
+
+    timerUpdateDisplay(); engFCShow(); engQuizLoad(); renderDictionary();
+    hindiFCShow(); hindiQuizLoad(); tamilShowFC(); tamilQuizLoad(); mathQuizLoad();
+
+    try {
+        await openDatabase();
+        allBooks = await dbGetAll('books'); allNotes = await dbGetAll('notes');
+        console.log('Loaded ' + allBooks.length + ' books, ' + allNotes.length + ' notes');
+        toast('StudyBuddy ready! ' + allBooks.length + ' books.', 'ok');
+    } catch (err) { console.error('Database error:', err); toast('Database error. Try refreshing.', 'err'); }
+
+    updateDashboard();
+};
